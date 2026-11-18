@@ -84,6 +84,8 @@ public sealed partial class TagEditorViewModel : ViewModelBase
             AllFields.Where(x => x.Info.Group == TagFieldGroup.Advanced));
     }
 
+    public ArtworkViewerViewModel ArtworkViewer { get; } = new();
+
     public IReadOnlyList<TagFieldEditorViewModel> AllFields { get; }
 
     public ObservableCollection<TagFieldEditorViewModel> BasicFields { get; }
@@ -112,10 +114,10 @@ public sealed partial class TagEditorViewModel : ViewModelBase
                 field.Load(new TagFieldSummary(field.Field, null, false, 0));
             }
 
-            ArtworkBytes = null;
+            SetArtwork(null, "No artwork");
             ArtworkMimeType = null;
             IsArtworkMixed = false;
-            ArtworkSummary = "No artwork";
+            ArtworkViewer.Close();
             HasChanges = false;
             StatusMessage = "Select a track to edit its tags.";
             return;
@@ -127,14 +129,19 @@ public sealed partial class TagEditorViewModel : ViewModelBase
             field.Load(summary.For(field.Field));
         }
 
-        ArtworkBytes = summary.CommonCoverArt?.Data;
         ArtworkMimeType = summary.CommonCoverArt?.MimeType;
         IsArtworkMixed = summary.IsCoverArtMixed;
-        ArtworkSummary = summary.IsCoverArtMixed
+        var artworkSummary = summary.IsCoverArtMixed
             ? "Mixed artwork"
             : summary.CommonCoverArt is null
                 ? "No artwork"
                 : $"{summary.CommonCoverArt.MimeType} · {FormatSize(summary.CommonCoverArt.SizeInBytes)}";
+        SetArtwork(summary.CommonCoverArt?.Data, artworkSummary);
+
+        if (ArtworkBytes is null)
+        {
+            ArtworkViewer.Close();
+        }
 
         HasChanges = false;
         StatusMessage = tracks.Count == 1
@@ -228,10 +235,9 @@ public sealed partial class TagEditorViewModel : ViewModelBase
         }
 
         _artworkUpdate = CoverArtUpdate.Set(result.Artwork);
-        ArtworkBytes = result.Artwork.Data;
+        SetArtwork(result.Artwork.Data, $"{result.Artwork.MimeType} · {FormatSize(result.Artwork.SizeInBytes)}");
         ArtworkMimeType = result.Artwork.MimeType;
         IsArtworkMixed = false;
-        ArtworkSummary = $"{result.Artwork.MimeType} · {FormatSize(result.Artwork.SizeInBytes)}";
         HasChanges = true;
         StatusMessage = "Artwork will be replaced when you save.";
     }
@@ -244,10 +250,10 @@ public sealed partial class TagEditorViewModel : ViewModelBase
         }
 
         _artworkUpdate = CoverArtUpdate.Remove;
-        ArtworkBytes = null;
+        SetArtwork(null, "Artwork will be removed");
         ArtworkMimeType = null;
         IsArtworkMixed = false;
-        ArtworkSummary = "Artwork will be removed";
+        ArtworkViewer.Close();
         HasChanges = true;
         StatusMessage = "Artwork will be removed when you save.";
     }
@@ -255,6 +261,14 @@ public sealed partial class TagEditorViewModel : ViewModelBase
     public void Reset()
     {
         LoadSelection(_tracks);
+    }
+
+    private void SetArtwork(byte[]? bytes, string summary)
+    {
+        ArtworkBytes = bytes;
+        ArtworkSummary = summary;
+        ArtworkViewer.ArtworkBytes = bytes;
+        ArtworkViewer.ArtworkSummary = summary;
     }
 
     private void OnFieldChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -284,4 +298,15 @@ public sealed partial class TagEditorViewModel : ViewModelBase
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     private void ResetEdits() => Reset();
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void OpenArtwork()
+    {
+        if (ArtworkBytes is null)
+        {
+            return;
+        }
+
+        ArtworkViewer.Open();
+    }
 }

@@ -182,4 +182,59 @@ public sealed class TagEditorViewModelTests
         Assert.True(_sut.HasChanges);
         Assert.Contains("removed", _sut.ArtworkSummary);
     }
+
+    [Fact]
+    public void LoadSelection_ShouldExposeArtworkToViewer_WhenTrackHasArtwork()
+    {
+        // Arrange
+        var artwork = new CoverArt([1, 2, 3], "image/png");
+
+        // Act
+        _sut.LoadSelection([TestTrack.Create(artwork: artwork)]);
+
+        // Assert
+        Assert.Equal(artwork.Data, _sut.ArtworkViewer.ArtworkBytes);
+        Assert.Equal(_sut.ArtworkSummary, _sut.ArtworkViewer.ArtworkSummary);
+    }
+
+    [Fact]
+    public void OpenArtwork_ShouldOpenViewer_WhenArtworkExists()
+    {
+        // Arrange
+        _sut.LoadSelection([TestTrack.Create(artwork: new CoverArt([1, 2, 3], "image/png"))]);
+
+        // Act
+        _sut.OpenArtworkCommand.Execute(null);
+
+        // Assert
+        Assert.True(_sut.ArtworkViewer.IsOpen);
+        Assert.Equal(1, _sut.ArtworkViewer.Zoom);
+    }
+
+    [Fact]
+    public void OpenArtwork_ShouldKeepViewerClosed_WhenSelectionHasNoArtwork()
+    {
+        // Arrange
+        _sut.LoadSelection([TestTrack.Create()]);
+
+        // Act
+        _sut.OpenArtworkCommand.Execute(null);
+
+        // Assert
+        Assert.False(_sut.ArtworkViewer.IsOpen);
+    }
+
+    [Fact]
+    public void LoadSelection_ShouldCloseViewer_WhenNewSelectionHasNoArtwork()
+    {
+        // Arrange
+        _sut.LoadSelection([TestTrack.Create(artwork: new CoverArt([1, 2, 3], "image/png"))]);
+        _sut.OpenArtworkCommand.Execute(null);
+
+        // Act
+        _sut.LoadSelection([TestTrack.Create()]);
+
+        // Assert
+        Assert.False(_sut.ArtworkViewer.IsOpen);
+    }
 }

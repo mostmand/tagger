@@ -1,0 +1,107 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Tagger.Desktop.ViewModels"
+             x:Class="Tagger.Desktop.Views.ArtworkViewerView"
+             x:DataType="vm:ArtworkViewerViewModel"
+             IsVisible="{Binding IsOpen}">
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="Escape" Command="{Binding CloseCommand}" />
+  </UserControl.KeyBindings>
+
+  <Border Background="{DynamicResource OverlayBrush}">
+    <Border Margin="48"
+            MaxWidth="940"
+            MaxHeight="840"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource BorderStrongBrush}"
+            BorderThickness="1"
+            CornerRadius="14"
+            ClipToBounds="True">
+      <Grid RowDefinitions="Auto,*">
+        <Grid ColumnDefinitions="*,Auto" Margin="18,12,12,12">
+          <StackPanel Spacing="2" VerticalAlignment="Center">
+            <TextBlock Text="ARTWORK" Classes="section" />
+            <TextBlock Text="{Binding ArtworkSummary}" FontSize="11" Classes="muted" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+            <Button Classes="icon"
+                    Theme="{StaticResource IconButtonTheme}"
+                    Command="{Binding ZoomOutCommand}"
+                    IsEnabled="{Binding CanZoomOut}"
+                    ToolTip.Tip="Zoom out">
+              <Path Data="M4,10 H16"
+                    Stroke="{DynamicResource TextSecondaryBrush}"
+                    StrokeThickness="1.6"
+                    Width="14"
+                    Height="14"
+                    Stretch="Uniform" />
+            </Button>
+            <Button Classes="tool"
+                    Theme="{StaticResource ToolButtonTheme}"
+                    Command="{Binding ResetCommand}"
+                    Content="{Binding ZoomLabel}"
+                    MinWidth="64"
+                    Padding="8,6"
+                    FontSize="12"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
+                    ToolTip.Tip="Reset zoom to 100%" />
+            <Button Classes="icon"
+                    Theme="{StaticResource IconButtonTheme}"
+                    Command="{Binding ZoomInCommand}"
+                    IsEnabled="{Binding CanZoomIn}"
+                    ToolTip.Tip="Zoom in">
+              <Path Data="M4,10 H16 M10,4 V16"
+                    Stroke="{DynamicResource TextSecondaryBrush}"
+                    StrokeThickness="1.6"
+                    Width="14"
+                    Height="14"
+                    Stretch="Uniform" />
+            </Button>
+            <Border Width="1" Height="20" Margin="6,0" Background="{DynamicResource BorderBrush}" />
+            <Button x:Name="CloseArtworkButton"
+                    Classes="icon"
+                    Theme="{StaticResource IconButtonTheme}"
+                    Command="{Binding CloseCommand}"
+                    ToolTip.Tip="Close (Esc)"
+                    AutomationProperties.Name="Close artwork viewer">
+              <Path Data="M5,5 L15,15 M15,5 L5,15"
+                    Stroke="{DynamicResource TextSecondaryBrush}"
+                    StrokeThickness="1.6"
+                    Width="14"
+                    Height="14"
+                    Stretch="Uniform" />
+            </Button>
+          </StackPanel>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1"
+                      x:Name="ArtworkScrollViewer"
+                      Padding="18,0,18,18"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalContentAlignment="Center"
+                      VerticalContentAlignment="Center">
+          <LayoutTransformControl x:Name="ArtworkCanvas"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  PointerPressed="OnArtworkPointerPressed"
+                                  PointerMoved="OnArtworkPointerMoved"
+                                  PointerReleased="OnArtworkPointerReleased"
+                                  PointerCaptureLost="OnArtworkPointerCaptureLost">
+            <LayoutTransformControl.LayoutTransform>
+              <ScaleTransform ScaleX="{Binding Zoom}" ScaleY="{Binding Zoom}" />
+            </LayoutTransformControl.LayoutTransform>
+            <Image Source="{Binding ArtworkBytes, Converter={StaticResource ArtworkConverter}}"
+                   Width="560"
+                   Height="560"
+                   Stretch="Uniform"
+                   RenderOptions.BitmapInterpolationMode="HighQuality" />
+          </LayoutTransformControl>
+        </ScrollViewer>
+      </Grid>
+    </Border>
+  </Border>
+</UserControl>

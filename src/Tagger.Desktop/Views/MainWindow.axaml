@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Tagger.Desktop.ViewModels"
+        xmlns:views="using:Tagger.Desktop.Views"
         xmlns:conv="using:Avalonia.Data.Converters"
         Icon="/Assets/tagger.png"
         x:Class="Tagger.Desktop.Views.MainWindow"
@@ -416,6 +417,14 @@
                     <Image Source="{Binding Editor.ArtworkBytes, Converter={StaticResource ArtworkConverter}}"
                            Stretch="UniformToFill"
                            RenderOptions.BitmapInterpolationMode="HighQuality" />
+                    <Button x:Name="ArtworkOpenButton"
+                            Theme="{StaticResource ArtworkButtonTheme}"
+                            Command="{Binding Editor.OpenArtworkCommand}"
+                            IsVisible="{Binding Editor.ArtworkBytes, Converter={x:Static conv:ObjectConverters.IsNotNull}}"
+                            ToolTip.Tip="View artwork"
+                            AutomationProperties.Name="View artwork"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch" />
                   </Grid>
                   <Border Grid.Row="1"
                           Background="{DynamicResource SurfaceRaisedBrush}"
@@ -501,6 +510,10 @@
         <TextBlock Grid.Column="2" Text="{Binding Editor.StatusMessage}" FontSize="11" Classes="muted" VerticalAlignment="Center" />
       </Grid>
     </Border>
+
+    <views:ArtworkViewerView Grid.RowSpan="3"
+                             ZIndex="10"
+                             DataContext="{Binding Editor.ArtworkViewer}" />
   </Grid>
 
   <Window.Resources>
