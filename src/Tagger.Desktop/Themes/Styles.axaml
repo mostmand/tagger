@@ -3,6 +3,28 @@
         xmlns:vm="using:Tagger.Desktop.ViewModels">
 
   <Styles.Resources>
+    <!-- Geometry from Wikimedia Commons "Figure rythmique croche hampe haut.svg"
+         by Christophe Dang Ngoc Chan, CC BY-SA 3.0. -->
+    <ControlTheme x:Key="MusicNoteIconTheme" TargetType="ContentControl">
+      <Setter Property="Width" Value="34" />
+      <Setter Property="Height" Value="34" />
+      <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Viewbox Stretch="Uniform">
+            <Canvas Width="27" Height="43">
+              <Path Data="M5.42005,31.563017 C2.02421,33.382987 0.21477,36.677567 1.32783,39.155977 C2.51509,41.799617 6.59484,42.545697 10.43441,40.821347 C14.27397,39.096987 16.42657,35.551947 15.23931,32.908317 C14.05204,30.264677 9.9723,29.518597 6.13273,31.242947 C5.89276,31.350717 5.64645,31.441687 5.42005,31.563017 Z"
+                    Fill="{TemplateBinding Foreground}" />
+              <Path Data="M15.03755,34.33753 L15.03755,0.74996"
+                    Stroke="{TemplateBinding Foreground}"
+                    StrokeThickness="1.5" />
+              <Path Data="M15.0329,1.7098 C14.4704,8.0223 19.87545,10.28354 22.5329,13.2098 C25.05886,15.99127 25.98157,19.19952 25.87838,22.2054 C25.85083,23.00797 25.63295,26.48551 23.26393,29.97212 C26.43185,21.22501 23.4824,17.71406 20.60097,14.92054 C17.11103,11.53708 14.51485,8.34836 15.0329,1.7098 Z"
+                    Fill="{TemplateBinding Foreground}" />
+            </Canvas>
+          </Viewbox>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
     <ControlTheme x:Key="ToolButtonTheme" TargetType="Button">
       <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
