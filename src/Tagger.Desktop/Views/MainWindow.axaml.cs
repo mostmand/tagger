@@ -1,5 +1,3 @@
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Tagger.Desktop.ViewModels;
@@ -9,6 +7,7 @@ namespace Tagger.Desktop.Views;
 public partial class MainWindow : Window
 {
     private MainWindowViewModel? _viewModel;
+    private bool _syncingSelection;
 
     public MainWindow()
     {
@@ -19,13 +18,15 @@ public partial class MainWindow : Window
     {
         if (_viewModel is not null)
         {
-            _viewModel.VisibleTracks.CollectionChanged -= OnVisibleTracksChanged;
+            _viewModel.SelectionChanged -= OnViewModelSelectionChanged;
+            _viewModel.VisibleTracksRebuilt -= OnVisibleTracksRebuilt;
         }
 
         _viewModel = DataContext as MainWindowViewModel;
         if (_viewModel is not null)
         {
-            _viewModel.VisibleTracks.CollectionChanged += OnVisibleTracksChanged;
+            _viewModel.SelectionChanged += OnViewModelSelectionChanged;
+            _viewModel.VisibleTracksRebuilt += OnVisibleTracksRebuilt;
         }
 
         base.OnDataContextChanged(e);
@@ -53,30 +54,71 @@ public partial class MainWindow : Window
         base.OnKeyDown(e);
     }
 
-    private void OnVisibleTracksChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    private void OnVisibleTracksRebuilt(object? sender, EventArgs e)
     {
-        if (TrackList.SelectedItems is { Count: > 0 })
+        if (_viewModel is null)
         {
             return;
         }
 
-        if (TrackList.ItemCount > 0)
+        var selected = _viewModel.SelectedRows
+            .Where(row => _viewModel.VisibleTracks.Contains(row))
+            .ToList();
+
+        if (selected.Count == 0 && _viewModel.VisibleTracks.Count > 0)
         {
-            TrackList.SelectedIndex = 0;
+            TrackTree.SelectedItem = _viewModel.VisibleTracks[0];
+            return;
+        }
+
+        SyncSelection(selected);
+    }
+
+    private void OnViewModelSelectionChanged(object? sender, EventArgs e)
+    {
+        if (_viewModel is null)
+        {
+            return;
+        }
+
+        SyncSelection(_viewModel.SelectedRows
+            .Where(row => _viewModel.VisibleTracks.Contains(row))
+            .ToList());
+    }
+
+    private void SyncSelection(IReadOnlyList<TrackRowViewModel> rows)
+    {
+        if (_syncingSelection || TrackTree.SelectedItems is null)
+        {
+            return;
+        }
+
+        _syncingSelection = true;
+        try
+        {
+            TrackTree.SelectedItems.Clear();
+            foreach (var row in rows)
+            {
+                TrackTree.SelectedItems.Add(row);
+            }
+        }
+        finally
+        {
+            _syncingSelection = false;
         }
     }
 
     private void OnTrackSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel)
+        if (_syncingSelection || _viewModel is null)
         {
             return;
         }
 
-        var rows = TrackList.SelectedItems?
-            .OfType<TrackRowViewModel>()
+        var nodes = TrackTree.SelectedItems?
+            .OfType<LibraryNodeViewModel>()
             .ToList() ?? [];
 
-        viewModel.SetSelection(rows);
+        _viewModel.SelectTreeNodes(nodes);
     }
 }

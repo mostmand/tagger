@@ -5,15 +5,17 @@ namespace Tagger.Desktop.ViewModels;
 
 public abstract class ViewModelBase : ObservableObject;
 
-public sealed class TrackRowViewModel : ViewModelBase
+public sealed class TrackRowViewModel : LibraryNodeViewModel
 {
     private Track _track;
     private int _index;
+    private string _folderDisplay;
 
     public TrackRowViewModel(Track track, int index)
     {
         _track = track;
         _index = index;
+        _folderDisplay = GetFolderName(track.DirectoryPath);
     }
 
     public Track Track => _track;
@@ -50,13 +52,65 @@ public sealed class TrackRowViewModel : ViewModelBase
 
     public string FilePath => _track.FilePath;
 
+    public string DetailLine
+    {
+        get
+        {
+            var parts = new List<string>(5);
+            if (!string.IsNullOrWhiteSpace(Artist))
+            {
+                parts.Add(Artist);
+            }
+
+            if (!string.IsNullOrWhiteSpace(Album))
+            {
+                parts.Add(Album);
+            }
+
+            if (!string.IsNullOrWhiteSpace(Year))
+            {
+                parts.Add(Year);
+            }
+
+            if (!string.IsNullOrWhiteSpace(Genre))
+            {
+                parts.Add(Genre);
+            }
+
+            parts.Add(FileName);
+            return string.Join(" · ", parts);
+        }
+    }
+
     public string Folder => _track.DirectoryPath;
+
+    /// <summary>Short folder label relative to the loaded library roots.</summary>
+    public string FolderDisplay
+    {
+        get => _folderDisplay;
+        private set => SetProperty(ref _folderDisplay, value);
+    }
 
     public bool HasArtwork => _track.CoverArt is not null;
 
     public void Update(Track track)
     {
         _track = track;
+        _folderDisplay = GetFolderName(track.DirectoryPath);
         OnPropertyChanged(string.Empty);
     }
+
+    public void UpdateFolderDisplay(string display)
+    {
+        FolderDisplay = display;
+    }
+
+    private static string GetFolderName(string directoryPath)
+    {
+        var trimmed = Path.TrimEndingDirectorySeparator(directoryPath);
+        var name = Path.GetFileName(trimmed);
+        return string.IsNullOrEmpty(name) ? directoryPath : name;
+    }
+
+    public override string ToString() => Title;
 }

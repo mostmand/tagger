@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Tagger.Desktop.ViewModels">
 
   <Styles.Resources>
     <ControlTheme x:Key="ToolButtonTheme" TargetType="Button">
@@ -136,63 +137,24 @@
       </Style>
     </ControlTheme>
 
-    <ControlTheme x:Key="HeaderButtonTheme" TargetType="Button">
+    <ControlTheme x:Key="LibraryTreeItemTheme"
+                  TargetType="TreeViewItem"
+                  BasedOn="{StaticResource {x:Type TreeViewItem}}">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
-      <Setter Property="Padding" Value="4,2" />
-      <Setter Property="FontSize" Value="11" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="HorizontalContentAlignment" Value="Left" />
-      <Setter Property="Cursor" Value="Hand" />
-      <Setter Property="Template">
-        <ControlTemplate>
-          <Border Name="PART_Border" Background="{TemplateBinding Background}" CornerRadius="4">
-            <ContentPresenter Content="{TemplateBinding Content}"
-                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-                              VerticalContentAlignment="Center"
-                              Padding="{TemplateBinding Padding}" />
-          </Border>
-        </ControlTemplate>
-      </Setter>
-      <Style Selector="^:pointerover /template/ Border#PART_Border">
-        <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
-      </Style>
-      <Style Selector="^:pointerover">
-        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
-      </Style>
-    </ControlTheme>
-
-    <ControlTheme x:Key="TrackRowTheme" TargetType="ListBoxItem">
-      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="7" />
+      <Setter Property="Margin" Value="2,1" />
+      <Setter Property="MinHeight" Value="32" />
       <Setter Property="Padding" Value="0" />
-      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-      <Setter Property="VerticalContentAlignment" Value="Center" />
-      <Setter Property="Template">
-        <ControlTemplate>
-          <Border Name="RowBorder"
-                  Background="{TemplateBinding Background}"
-                  CornerRadius="7"
-                  Margin="2,1"
-                  Padding="10,0">
-            <ContentPresenter Content="{TemplateBinding Content}"
-                              ContentTemplate="{TemplateBinding ContentTemplate}"
-                              HorizontalContentAlignment="Stretch"
-                              VerticalContentAlignment="Center" />
-          </Border>
-        </ControlTemplate>
-      </Setter>
-      <Style Selector="^:pointerover /template/ Border#RowBorder">
+      <Style Selector="^:pointerover /template/ Border#PART_LayoutRoot">
         <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
       </Style>
-      <Style Selector="^:selected /template/ Border#RowBorder">
+      <Style Selector="^:selected /template/ Border#PART_LayoutRoot">
         <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
       </Style>
-      <Style Selector="^:selected:pointerover /template/ Border#RowBorder">
+      <Style Selector="^:selected:pointerover /template/ Border#PART_LayoutRoot">
         <Setter Property="Background" Value="{DynamicResource SelectionHoverBrush}" />
-      </Style>
-      <Style Selector="^:selected">
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
       </Style>
     </ControlTheme>
   </Styles.Resources>
@@ -250,6 +212,16 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <Style Selector="TreeView.libraryTree">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <Style Selector="TreeView.libraryTree TreeViewItem" x:DataType="vm:LibraryNodeViewModel">
+    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+    <Setter Property="ItemContainerTheme" Value="{StaticResource LibraryTreeItemTheme}" />
   </Style>
 
   <Style Selector="ScrollViewer">

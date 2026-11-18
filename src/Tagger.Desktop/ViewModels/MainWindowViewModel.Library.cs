@@ -36,7 +36,7 @@ public sealed partial class MainWindowViewModel
 
             var result = await _library.LoadAsync(paths, Settings.Recursive, progress, cancellationToken);
             MergeTracks(result.Tracks);
-            UpdateLibraryRoot(paths);
+            RegisterLibraryRoots(paths);
             RefreshVisible();
 
             StatusMessage = result.Failures.Count == 0
@@ -74,6 +74,7 @@ public sealed partial class MainWindowViewModel
             MergeTracks(result.Tracks);
         }
 
+        ApplyFolderLabels();
         RefreshVisible();
         RaiseCollectionState();
     }
@@ -122,14 +123,22 @@ public sealed partial class MainWindowViewModel
             .Where(x => query.Matches(x.Track))
             .ToList();
 
-        var byId = matches.ToDictionary(x => x.Id);
-        matches = TrackSorter
-            .Sort(matches.Select(x => x.Track), SortField, SortDescending)
-            .Select(x => byId[x.Id])
-            .ToList();
+        CaptureExpansionStates();
+        var tree = _treeBuilder.Build(
+            matches,
+            _libraryRoots,
+            SortField,
+            SortDescending,
+            _folderExpansion);
+
+        VisibleTree.Clear();
+        foreach (var node in tree)
+        {
+            VisibleTree.Add(node);
+        }
 
         VisibleTracks.Clear();
-        foreach (var row in matches)
+        foreach (var row in tree.SelectMany(x => x.AllTracks))
         {
             VisibleTracks.Add(row);
         }
@@ -139,9 +148,50 @@ public sealed partial class MainWindowViewModel
             VisibleTracks[i].Index = i + 1;
         }
 
+        PruneSelectionToVisible();
+
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
-            StatusMessage = $"{matches.Count} of {_allTracks.Count} tracks match “{SearchText}”.";
+            StatusMessage = $"{VisibleTracks.Count} of {_allTracks.Count} tracks match “{SearchText}”.";
+        }
+
+        VisibleTracksRebuilt?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void CaptureExpansionStates()
+    {
+        foreach (var folder in EnumerateFolders(VisibleTree))
+        {
+            _folderExpansion[folder.Path] = folder.IsExpanded;
+        }
+    }
+
+    private static IEnumerable<FolderNodeViewModel> EnumerateFolders(
+        IEnumerable<LibraryNodeViewModel> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            if (node is not FolderNodeViewModel folder)
+            {
+                continue;
+            }
+
+            yield return folder;
+            foreach (var child in EnumerateFolders(folder.Children))
+            {
+                yield return child;
+            }
+        }
+    }
+
+    private void PruneSelectionToVisible()
+    {
+        var visible = VisibleTracks.Select(x => x.Id).ToHashSet();
+        var kept = _selectedRows.Where(x => visible.Contains(x.Id)).ToList();
+
+        if (kept.Count != _selectedRows.Count)
+        {
+            ApplySelection(kept, notifyView: false);
         }
     }
 
@@ -150,13 +200,39 @@ public sealed partial class MainWindowViewModel
         foreach (var row in rows.ToList())
         {
             _allTracks.Remove(row);
-            VisibleTracks.Remove(row);
         }
 
+        PruneLibraryRoots();
         RenumberRows();
         RaiseCollectionState();
         ClearSelection();
+        RefreshVisible();
     }
+
+    private void PruneLibraryRoots()
+    {
+        var removed = _libraryRoots.RemoveAll(root =>
+            !_allTracks.Any(row => IsUnderRoot(row.Folder, root)));
+
+        if (removed == 0)
+        {
+            return;
+        }
+
+        LibraryFolders.Clear();
+        foreach (var root in _libraryRoots)
+        {
+            LibraryFolders.Add(root);
+        }
+
+        OnPropertyChanged(nameof(HasLibraryFolders));
+        UpdateLibraryRoot();
+        ApplyFolderLabels();
+    }
+
+    private static bool IsUnderRoot(string directory, string root) =>
+        PathComparisonEquals(directory, root) ||
+        directory.StartsWith(root + Path.DirectorySeparatorChar, PathComparison.Comparison);
 
     private void RenumberRows()
     {
@@ -166,17 +242,74 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private void UpdateLibraryRoot(IReadOnlyList<string> paths)
+    private void RegisterLibraryRoots(IReadOnlyList<string> paths)
     {
-        var folder = paths.Count == 1 && Directory.Exists(paths[0])
-            ? paths[0]
-            : Path.GetDirectoryName(paths[0]);
+        var added = false;
 
-        if (folder is not null)
+        foreach (var path in paths)
         {
-            LibraryRoot = folder;
-            Settings = Settings with { LastFolder = folder };
+            var root = ResolveLibraryRoot(path);
+            if (string.IsNullOrWhiteSpace(root) || _libraryRoots.Any(x => PathComparisonEquals(x, root)))
+            {
+                continue;
+            }
+
+            _libraryRoots.Add(root);
+            LibraryFolders.Add(root);
+            added = true;
         }
+
+        if (added)
+        {
+            OnPropertyChanged(nameof(HasLibraryFolders));
+        }
+
+        UpdateLibraryRoot();
+        ApplyFolderLabels();
+    }
+
+    private void UpdateLibraryRoot()
+    {
+        LibraryRoot = _libraryRoots.Count switch
+        {
+            0 => "No folder open",
+            1 => _libraryRoots[0],
+            _ => $"{_libraryRoots.Count} folders"
+        };
+
+        LibraryTooltip = _libraryRoots.Count == 0
+            ? "No folder open"
+            : string.Join(Environment.NewLine, _libraryRoots);
+
+        if (_libraryRoots.Count > 0)
+        {
+            Settings = Settings with { LastFolder = _libraryRoots[^1] };
+        }
+    }
+
+    private void ApplyFolderLabels()
+    {
+        var formatter = new FolderLabelFormatter(_libraryRoots);
+        foreach (var row in _allTracks)
+        {
+            row.UpdateFolderDisplay(formatter.Format(row.Folder));
+        }
+    }
+
+    private static string? ResolveLibraryRoot(string path)
+    {
+        if (Directory.Exists(path))
+        {
+            return path;
+        }
+
+        if (File.Exists(path))
+        {
+            return Path.GetDirectoryName(path);
+        }
+
+        // Paths that do not exist yet are classified by shape: files have an extension.
+        return Path.HasExtension(path) ? Path.GetDirectoryName(path) : path;
     }
 
     private async Task SaveSettingsAsync(CancellationToken cancellationToken = default)

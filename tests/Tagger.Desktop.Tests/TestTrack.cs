@@ -10,9 +10,10 @@ internal static class TestTrack
         string? artist = "Artist",
         string? album = null,
         string? year = null,
-        CoverArt? artwork = null)
+        CoverArt? artwork = null,
+        string folder = "music")
     {
-        var path = Path.Combine("music", fileName);
+        var path = Path.Combine(folder, fileName);
         return new Track
         {
             Id = Guid.NewGuid(),

@@ -33,6 +33,35 @@ public sealed class TrackRowViewModelTests
     }
 
     [Fact]
+    public void Constructor_ShouldExposeContainingFolder_WhenTrackIsCreated()
+    {
+        // Arrange
+        var row = new TrackRowViewModel(
+            TestTrack.Create("song.mp3", folder: Path.Combine("music", "Aurora")),
+            1);
+
+        // Act
+        var folder = row.Folder;
+        var label = row.FolderDisplay;
+
+        // Assert
+        Assert.Equal(Path.Combine("music", "Aurora"), folder);
+        Assert.Equal("Aurora", label);
+    }
+
+    [Fact]
+    public void UpdateFolderDisplay_ShouldReplaceLabel_WhenLibraryRootsChange()
+    {
+        // Arrange
+
+        // Act
+        _sut.UpdateFolderDisplay(Path.Combine("Aurora", "Infections of a Different Kind"));
+
+        // Assert
+        Assert.Equal(Path.Combine("Aurora", "Infections of a Different Kind"), _sut.FolderDisplay);
+    }
+
+    [Fact]
     public void Update_ShouldReplaceTrackValues_WhenNewTrackProvided()
     {
         // Arrange

@@ -15,6 +15,39 @@ public sealed partial class MainWindowViewModel
     [ObservableProperty]
     private bool _sortDescending;
 
+    public string SortSummary => $"{SortFieldLabel(SortField)} {(SortDescending ? "↓" : "↑")}";
+
+    private static string SortFieldLabel(TrackSortField field) =>
+        field == TrackSortField.FileName ? "Name" : field.ToString();
+
+    partial void OnSortFieldChanged(TrackSortField value) => OnPropertyChanged(nameof(SortSummary));
+
+    partial void OnSortDescendingChanged(bool value) => OnPropertyChanged(nameof(SortSummary));
+
+    [RelayCommand]
+    private void ToggleSortDirection()
+    {
+        SortDescending = !SortDescending;
+        RefreshVisible();
+        StatusMessage = $"Sorted by {SortFieldLabel(SortField)} {(SortDescending ? "descending" : "ascending")}.";
+    }
+
+    [RelayCommand]
+    private void ExpandAll() => SetAllFoldersExpanded(true);
+
+    [RelayCommand]
+    private void CollapseAll() => SetAllFoldersExpanded(false);
+
+    private void SetAllFoldersExpanded(bool expanded)
+    {
+        foreach (var folder in EnumerateFolders(VisibleTree))
+        {
+            folder.IsExpanded = expanded;
+        }
+
+        StatusMessage = expanded ? "Expanded all folders." : "Collapsed all folders.";
+    }
+
     [RelayCommand]
     private void Sort(string? field)
     {
@@ -83,6 +116,12 @@ public sealed partial class MainWindowViewModel
 
         _allTracks.Clear();
         VisibleTracks.Clear();
+        VisibleTree.Clear();
+        _libraryRoots.Clear();
+        _folderExpansion.Clear();
+        LibraryFolders.Clear();
+        UpdateLibraryRoot();
+        OnPropertyChanged(nameof(HasLibraryFolders));
         ClearSelection();
         RaiseCollectionState();
         StatusMessage = "Library cleared. Files were not modified.";

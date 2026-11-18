@@ -22,6 +22,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     private readonly List<TrackRowViewModel> _allTracks = [];
     private readonly List<TrackRowViewModel> _selectedRows = [];
+    private readonly List<string> _libraryRoots = [];
+    private readonly Dictionary<string, bool> _folderExpansion = new(Application.Renaming.PathComparison.Comparer);
+    private readonly LibraryTreeBuilder _treeBuilder = new();
 
     [ObservableProperty]
     private string _searchText = string.Empty;
@@ -57,6 +60,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private string _libraryRoot = "No folder open";
 
     [ObservableProperty]
+    private string _libraryTooltip = "No folder open";
+
+    [ObservableProperty]
     private string _selectionSummary = "Nothing selected";
 
     [ObservableProperty]
@@ -87,11 +93,24 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             }
         };
         VisibleTracks = new ObservableCollection<TrackRowViewModel>();
+        VisibleTree = new ObservableCollection<LibraryNodeViewModel>();
     }
 
     public TagEditorViewModel Editor { get; }
 
     public ObservableCollection<TrackRowViewModel> VisibleTracks { get; }
+
+    public ObservableCollection<LibraryNodeViewModel> VisibleTree { get; }
+
+    public ObservableCollection<string> LibraryFolders { get; } = [];
+
+    public IReadOnlyList<TrackRowViewModel> SelectedRows => _selectedRows;
+
+    public event EventHandler? SelectionChanged;
+
+    public event EventHandler? VisibleTracksRebuilt;
+
+    public bool HasLibraryFolders => LibraryFolders.Count > 0;
 
     public bool HasTracks => _allTracks.Count > 0;
 
@@ -117,6 +136,29 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     public void SetSelection(IEnumerable<TrackRowViewModel> rows)
     {
+        ApplySelection(rows, notifyView: true);
+    }
+
+    /// <summary>Maps selected tree nodes (folders expand to all their tracks) into the editor selection.</summary>
+    public void SelectTreeNodes(IEnumerable<LibraryNodeViewModel> nodes)
+    {
+        var rows = nodes.SelectMany(node => node switch
+        {
+            FolderNodeViewModel folder => folder.AllTracks,
+            TrackRowViewModel track => [track],
+            _ => []
+        });
+
+        ApplySelection(rows, notifyView: false);
+    }
+
+    public void ClearSelection()
+    {
+        ApplySelection([], notifyView: true);
+    }
+
+    private void ApplySelection(IEnumerable<TrackRowViewModel> rows, bool notifyView)
+    {
         _selectedRows.Clear();
         _selectedRows.AddRange(rows.DistinctBy(x => x.Id));
 
@@ -125,16 +167,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         SelectionSummary = BuildSelectionSummary();
         Editor.LoadSelection(_selectedRows.Select(x => x.Track).ToList());
         OnPropertyChanged(nameof(CanSave));
-    }
 
-    public void ClearSelection()
-    {
-        _selectedRows.Clear();
-        HasSelection = false;
-        SelectionCount = 0;
-        SelectionSummary = "Nothing selected";
-        Editor.LoadSelection([]);
-        OnPropertyChanged(nameof(CanSave));
+        if (notifyView)
+        {
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private void OnEditorSaved(object? sender, Application.Editing.SaveResult result)
@@ -165,7 +202,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             .Aggregate(TimeSpan.Zero, (sum, next) => sum + next);
 
         var formats = _allTracks.Select(x => x.Format).Distinct().Count();
-        return $"{_allTracks.Count} tracks · {duration.Hours + duration.Days * 24}h {duration.Minutes:00}m · {formats} format{(formats == 1 ? string.Empty : "s")}";
+        var trackLabel = _allTracks.Count == 1 ? "1 track" : $"{_allTracks.Count} tracks";
+        return $"{trackLabel} · {duration.Hours + duration.Days * 24}h {duration.Minutes:00}m · {formats} format{(formats == 1 ? string.Empty : "s")}";
     }
 
     private string BuildSelectionSummary()

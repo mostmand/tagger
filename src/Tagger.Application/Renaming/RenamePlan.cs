@@ -54,10 +54,12 @@ public sealed record RenameResult(
 
 public static class PathComparison
 {
-    public static StringComparer Comparer { get; } =
+    public static StringComparison Comparison { get; } =
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+    public static StringComparer Comparer { get; } = StringComparer.FromComparison(Comparison);
 
     public static bool Equals(string left, string right) => Comparer.Equals(left, right);
 }
