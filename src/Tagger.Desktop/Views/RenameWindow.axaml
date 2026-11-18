@@ -1,0 +1,65 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Tagger.Desktop.ViewModels"
+        Icon="/Assets/tagger.png"
+        x:Class="Tagger.Desktop.Views.RenameWindow"
+        x:DataType="vm:RenameViewModel"
+        Title="Rename files from tags"
+        Width="920"
+        Height="640"
+        MinWidth="720"
+        MinHeight="480"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Background="{DynamicResource AppBgBrush}">
+    <StackPanel Margin="24,22,24,12" Spacing="4">
+      <TextBlock Text="Rename from tags" FontSize="22" FontWeight="Bold" />
+      <TextBlock Text="Preview every new path before a single file is moved. Folders are created as needed."
+                 Classes="muted" />
+    </StackPanel>
+
+    <Border Grid.Row="1" Classes="card" Margin="24,0,24,12" Padding="14">
+      <StackPanel Spacing="8">
+        <TextBlock Text="PATTERN" Classes="section" />
+        <TextBox Text="{Binding Pattern, Mode=TwoWay}" FontFamily="Cascadia Mono,Consolas,monospace" />
+        <TextBlock Text="Tokens: %artist%  %albumartist%  %album%  %title%  %track%  %track2%  %disc%  %year%  %genre%  %composer%  %ext%  %_filename%"
+                   Classes="muted" FontSize="11" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+
+    <Border Grid.Row="2" Classes="card" Margin="24,0,24,12" ClipToBounds="True">
+      <Grid RowDefinitions="34,*">
+        <Grid ColumnDefinitions="1.1*,2*,90" Margin="14,0">
+          <TextBlock Grid.Column="0" Text="CURRENT" Classes="section" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Text="NEW PATH" Classes="section" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="2" Text="STATUS" Classes="section" VerticalAlignment="Center" />
+        </Grid>
+        <ListBox Grid.Row="1" ItemsSource="{Binding Rows}" Background="Transparent">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:RenameRowViewModel">
+              <Grid ColumnDefinitions="1.1*,2*,90" Margin="4,7" ToolTip.Tip="{Binding TargetPath}">
+                <TextBlock Grid.Column="0" Text="{Binding OriginalName}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0" />
+                <TextBlock Grid.Column="1" Text="{Binding TargetPath}" FontSize="12" Classes="secondary" VerticalAlignment="Center" Margin="0,0,10,0" />
+                <TextBlock Grid.Column="2" Text="{Binding Status}" FontSize="11" Classes="muted" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextMutedBrush}" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="3" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+        <StackPanel VerticalAlignment="Center" Spacing="2">
+          <TextBlock Text="{Binding StatusMessage}" FontSize="12" Classes="secondary" />
+          <TextBlock Text="{Binding ErrorMessage}" FontSize="11" Foreground="{DynamicResource DangerBrush}"
+                     IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmpty}}" />
+        </StackPanel>
+        <Button Grid.Column="1" Classes="tool" Theme="{StaticResource ToolButtonTheme}" Content="Cancel" Click="OnCancel" />
+        <Button Grid.Column="2" Classes="primary" Theme="{StaticResource PrimaryButtonTheme}" Content="Rename files" Click="OnApply"
+                IsEnabled="{Binding CanApply}" />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

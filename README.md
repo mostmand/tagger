@@ -3,12 +3,14 @@
 **A modern, cross-platform music tag editor — built for people, scriptable by agents.**
 
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-4c6ef5)
-![Status](https://img.shields.io/badge/status-pre--alpha-f59f00)
+![Status](https://img.shields.io/badge/status-early--preview-4c6ef5)
 ![License](https://img.shields.io/badge/license-MIT-2f9e44)
 
 `tagger` is an open-source alternative to tools like Mp3tag: a fast, local-first app for editing the metadata of an entire music library, not just one file at a time. It aims to combine the depth of a classic tag editor with a modern interface, first-class batch workflows, and an [MCP](https://modelcontextprotocol.io) server that lets AI assistants work on your library safely.
 
-> **Project status:** pre-alpha. This README describes the intended product and its public interfaces. Nothing is installable yet; commands, config keys, and MCP tool names may change before the first release.
+> **Project status:** early preview. The desktop app, CLI, and MCP server share a working tag
+> engine with tag read/write, previews, a change journal, and undo. Packaging, online metadata
+> providers, and format-specific compatibility passes are still in progress.
 
 ---
 
@@ -43,6 +45,10 @@ Mp3tag is excellent, but it is Windows-first, its interface shows its age, and i
 ---
 
 ## Features
+
+> The current build implements the desktop library and inspector, previewed tag writes, rename/import,
+> artwork, duplicate detection, CLI, and MCP tools. Items called out as planned in the roadmap are
+> design targets, not shipped behavior.
 
 ### Tag editing that respects your files
 
@@ -93,18 +99,24 @@ The app is organized around four surfaces:
 | Surface | What it does |
 | --- | --- |
 | **Library browser** | Folders, albums, and saved views in a compact sidebar. |
-| **Track table** | Dense, virtualized, multi-select grid with inline editing and per-column sorting. |
+| **Track table** | Dense virtualized multi-select table with sortable columns and inspector editing. |
 | **Inspector** | Full metadata for the current selection, including extended frames and artwork. |
-| **Action bar** | Batch operations, previews, undo, and the command palette (`Ctrl/Cmd + K`). |
+| **Action bar** | Batch operations, previews, undo, and quick search (`Ctrl+F`). |
 
 Design goals:
 
-- **Keyboard-first.** Navigate, select, edit, and apply without touching the mouse.
+- **Keyboard-friendly.** Search, save, rename, and undo have shortcuts; the inspector stays out of the way.
 - **Preview by default.** Destructive operations are staged in a change set before they are committed.
 - **Dark and light themes**, proper high-DPI rendering, and native-feeling window chrome on every OS.
-- **No modal overload.** Side panels and inline controls instead of stacked dialogs.
+- **No modal overload.** Side panels and inline controls; dialogs are reserved for previews and destructive operations.
 
-Screenshots will be added with the first preview build.
+![The tagger library, inspector, and artwork](docs/screenshot.png)
+
+*The library browser, multi-select track table, and tag inspector.*
+
+![The light theme](docs/screenshot-light.png)
+
+*The same workspace in the light theme.*
 
 ---
 
@@ -112,20 +124,23 @@ Screenshots will be added with the first preview build.
 
 Most "AI for music" tools stop at suggestions. `tagger` exposes its tag engine through the [Model Context Protocol](https://modelcontextprotocol.io), so an assistant can inspect, edit, rename, and organize a library — with the same safety guarantees as the GUI.
 
-### Planned MCP tools
+### MCP tools in this build
 
-| Tool | Purpose |
+The first eight tools are implemented and share the same engine as the desktop app. Every mutating
+tool previews by default and only writes with `commit: true`.
+
+| Tool | Status |
 | --- | --- |
-| `library_scan` | Index a directory and report formats, tag coverage, and problems. |
-| `tags_read` | Read tags for one file or a batch of files. |
-| `tags_write` | Apply field-level patches, with preview and dry-run support. |
-| `tags_diff` | Show exactly what a pending change set would modify. |
-| `files_rename` | Rename and move files from tag patterns, with collision checks. |
-| `tags_from_filename` | Parse filenames into tag fields using a pattern. |
-| `artwork_set` | Embed, replace, or remove cover art. |
-| `metadata_lookup` | Query MusicBrainz, Discogs, and AcoustID for candidate matches. |
-| `duplicates_find` | Find duplicate tracks by tags or audio fingerprint. |
-| `changes_undo` | Roll back the most recent transaction. |
+| `library_scan` | Implemented |
+| `tags_read` | Implemented |
+| `tags_write` | Implemented (preview by default) |
+| `tags_diff` | Implemented |
+| `files_rename` | Implemented (collision-checked) |
+| `tags_from_filename` | Implemented (preview by default) |
+| `artwork_set` | Implemented (embed/replace/remove) |
+| `changes_undo` | Implemented |
+| `metadata_lookup` | Planned |
+| `duplicates_find` | Built-in duplicate finder; MCP exposure planned |
 
 ### Example client configuration
 
@@ -161,7 +176,7 @@ Agent access is intentionally boring and predictable:
 
 ## Command line
 
-The CLI is the automation surface of the same core engine. Planned shape:
+The CLI is the automation surface of the same core engine. Current shape:
 
 ```bash
 # Open the desktop app on a folder
@@ -191,16 +206,17 @@ Common flags: `--dry-run`, `--json`, `--recursive`, `--quiet`, `--config <path>`
 
 | Format | Extensions | Tag standards | Status |
 | --- | --- | --- | --- |
-| MP3 | `.mp3` | ID3v1, ID3v2.2/2.3/2.4 | Target |
-| FLAC | `.flac` | Vorbis comments, FLAC pictures | Target |
-| Ogg Vorbis / Opus | `.ogg`, `.opus` | Vorbis comments | Target |
-| MP4 / M4A | `.m4a`, `.mp4`, `.m4b` | iTunes atoms | Target |
-| WAV | `.wav` | ID3v2, RIFF INFO | Target |
-| AIFF | `.aiff`, `.aif` | ID3v2 | Target |
-| APE / WavPack | `.ape`, `.wv` | APEv2 | Target |
-| WMA | `.wma` | ASF metadata | Target |
+| MP3 | `.mp3` | ID3v1, ID3v2.2/2.3/2.4 | Read/write via TagLib# |
+| FLAC | `.flac` | Vorbis comments, FLAC pictures | Read/write via TagLib# |
+| Ogg Vorbis / Opus | `.ogg`, `.opus` | Vorbis comments | Read/write via TagLib# |
+| MP4 / M4A | `.m4a`, `.mp4`, `.m4b` | iTunes atoms | Read/write via TagLib# |
+| WAV | `.wav` | ID3v2, RIFF INFO | Read/write via TagLib# |
+| AIFF | `.aiff`, `.aif` | ID3v2 | Read/write via TagLib# |
+| APE / WavPack | `.ape`, `.wv` | APEv2 | Read/write via TagLib# |
+| WMA | `.wma` | ASF metadata | Read/write via TagLib# |
 
-"Target" means the format is in scope for the first stable release. Format support is tracked per codec so gaps are visible rather than hidden.
+The format compatibility pass will track gaps per codec, especially ID3 version/padding behavior and
+extended frame coverage. Unreadable files are reported, never silently rewritten.
 
 ---
 
@@ -220,25 +236,34 @@ Common flags: `--dry-run`, `--json`, `--recursive`, `--quiet`, `--config <path>`
   "rename_pattern": "%artist%/%album%/%track% - %title%",
   "autotag_pattern": "%artist% - %title%",
   "recursive": true,
-  "last_folder": "/home/me/Music"
+  "last_folder": "/home/me/Music",
+  "theme": "dark",
+  "always_preview": true,
+  "backup_before_write": true
 }
 ```
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `id3_version` | `2`, `3`, `4` | ID3v2 version used when writing MP3 tags. |
-| `padding` | integer | Bytes reserved after ID3v2 tags to make future edits faster. |
-| `id3v1` | `"auto"`, `"on"`, `"off"` | When to maintain a legacy ID3v1 tag alongside ID3v2. |
+| `id3_version` | `2`, `3`, `4` | Reserved for the ID3 compatibility pass. |
+| `padding` | integer | Reserved for the ID3 compatibility pass. |
+| `id3v1` | `"auto"`, `"on"`, `"off"` | Reserved for the ID3 compatibility pass. |
 | `rename_pattern` | string | Default pattern for renaming and moving files. |
 | `autotag_pattern` | string | Default pattern for parsing tags out of filenames. |
 | `recursive` | boolean | Whether folder operations include subfolders by default. |
 | `last_folder` | string | Last opened directory, restored on launch. |
+| `theme` | `"dark"`, `"light"`, `"system"` | UI theme. |
+| `always_preview` | boolean | Show the diff dialog before every save. |
+| `backup_before_write` | boolean | Reserved; writes are already atomic and journaled. |
+
+Writes currently use TagLib# defaults for format-specific options. The ID3 values are persisted so the
+format compatibility pass can change behavior without migrating settings.
 
 ### Pattern tokens
 
-`%artist%`, `%albumartist%`, `%album%`, `%title%`, `%track%`, `%disc%`, `%year%`, `%genre%`, `%composer%`, `%comment%`, `%ext%`
+`%artist%`, `%albumartist%`, `%album%`, `%title%`, `%track%`, `%track2%`, `%disc%`, `%year%`, `%genre%`, `%composer%`, `%comment%`, `%ext%`, `%_filename%`
 
-Patterns support zero-padded numbering and conditional segments (for example, omitting the disc folder for single-disc albums). The exact syntax is finalized with the first implementation.
+Patterns support zero-padded numbering (`%track2%`, `%track3%`), directories, and drag-free previews. Unknown tokens are rejected before anything is written.
 
 ---
 
@@ -246,33 +271,48 @@ Patterns support zero-padded numbering and conditional segments (for example, om
 
 ```mermaid
 flowchart LR
-    UI[Desktop UI] --> CORE[Tag engine]
-    CLI[CLI] --> CORE
-    MCP[MCP server] --> CORE
-    CORE --> FMT[Format codecs]
-    CORE --> JOURNAL[(Change journal / undo)]
-    CORE --> INDEX[(Library index)]
-    CORE --> PROV[Metadata providers]
-    MCP -.-> AGENT[AI agent / MCP client]
+    UI[Desktop UI] --> APP[Application use cases]
+    CLI[CLI] --> APP
+    MCP[MCP server] --> APP
+    APP --> DOMAIN[Domain model]
+    APP --> PORTS[Ports]
+    PORTS --> INFRA[Infrastructure adapters]
+    INFRA --> TAGLIB[TagLib#]
+    INFRA --> JOURNAL[(JSON journal / undo)]
+    INFRA --> SETTINGS[(JSON settings)]
 ```
+
+The repository is split into small, testable projects:
+
+| Project | Responsibility |
+| --- | --- |
+| `Tagger.Domain` | Tracks, tag catalog, validation, filename patterns, search, journal records. No UI or I/O. |
+| `Tagger.Application` | Use cases and ports: library loading, previews, safe writes, rename/import, artwork, settings, undo, duplicates. |
+| `Tagger.Infrastructure` | TagLib# adapter with atomic temp-file writes, file scanner, JSON settings/journal, image inspection. |
+| `Tagger.Desktop` | Avalonia 12 MVVM UI, compiled bindings, modern dark/light design system. |
+| `Tagger.Cli` | `list`, `read`, `write`, `from-filename`, `rename`, `mcp`. |
+| `Tagger.Mcp` | Stdio MCP server with scoped roots and preview-first tools. |
 
 Core principles:
 
-- **One engine, three surfaces.** The GUI, CLI, and MCP server call the same code paths, so they cannot drift apart.
-- **Parse, don't guess.** Format detection uses file signatures plus extensions; ambiguous files are reported, not silently rewritten.
-- **Transactional by default.** A batch edit is one transaction with one undo entry.
-- **Boring storage.** Settings are JSON, the index is disposable, and the journal is inspectable.
+- **One engine, three surfaces.** The GUI, CLI, and MCP server call the same application services.
+- **Preview first.** A `ChangeSetPreviewService` produces field-level diffs before writes.
+- **Transactional by default.** A batch edit or rename is one journal entry and one undo step.
+- **Atomic writes.** Tags are written to a sibling copy and replace the original only after success.
+- **Scoped automation.** MCP tools reject paths outside the `--allow` roots.
+- **Boring storage.** Settings and the journal are plain JSON; there is no database.
 - **Offline first.** The app is fully usable with networking disabled.
 
 ---
 
 ## Roadmap
 
-- [ ] **Foundations** — tag read/write for MP3/FLAC/M4A, atomic writes, change journal.
-- [ ] **Desktop UI** — library browser, track table, inspector, multi-select editing, artwork.
-- [ ] **Batch workflows** — rename from tags, tags from filenames, text tools, presets, duplicate detection.
+- [x] **Foundations** — tag read/write, atomic writes, change journal, undo.
+- [x] **Desktop UI** — library browser, multi-select table, inspector, artwork, dark/light themes.
+- [x] **Batch workflows** — rename from tags, tags from filenames, duplicate finder.
+- [ ] **Text tools and presets** — case conversion, replace, numbering, reusable actions.
 - [ ] **Online metadata** — MusicBrainz, Discogs, AcoustID, reviewable autotag previews.
-- [ ] **Agent surface** — MCP server, scoped roots, dry-run tooling, end-to-end safety tests.
+- [x] **Agent surface** — MCP server, scoped roots, dry-run tooling, preview-first tools.
 - [ ] **Release** — signed installers for Windows, macOS, and Linux, auto-update, documentation.
 
 The roadmap is directional, not a promise. Priorities will follow real usage.
@@ -281,9 +321,37 @@ The roadmap is directional, not a promise. Priorities will follow real usage.
 
 ## Getting started
 
-There is no installable build yet. Development setup and packaging instructions will land with the first preview release; until then, this repository is the place to follow design decisions and early commits.
+Requirements: .NET 11 SDK, Avalonia 12 runtime dependencies for your desktop.
 
-When builds are available, the intended installation paths are:
+```bash
+# Build everything
+dotnet build Tagger.slnx
+
+# Run the full test suite (xUnit v3 + NSubstitute)
+dotnet test Tagger.slnx
+
+# Desktop app
+dotnet run --project src/Tagger.Desktop
+
+# CLI
+dotnet run --project src/Tagger.Cli -- list ~/Music
+dotnet run --project src/Tagger.Cli -- read "Artist - Track.mp3"
+dotnet run --project src/Tagger.Cli -- write ./album --album "Northern Lights" --dry-run
+dotnet run --project src/Tagger.Cli -- rename ./album --pattern "%artist%/%album%/%track% - %title%"
+
+# MCP server (scoped to one or more roots)
+dotnet run --project src/Tagger.Mcp -- --allow ~/Music
+```
+
+### Project conventions
+
+- Architecture and safety rules live in [`AGENTS.md`](AGENTS.md).
+- Reusable agent skills live in [`.opencode/skills`](.opencode/skills).
+- Core domain, application, view-model, CLI, and MCP classes have unit tests. The system under test is
+  always `_sut` and tests use `Method_ShouldOutcome_WhenCondition` with explicit Arrange/Act/Assert comments.
+- UI and logic are decoupled: view models depend on application interfaces, never infrastructure.
+
+Packaging will follow once the format matrix and release signing are nailed down. Intended targets:
 
 - **Windows:** installer (`.exe`) and portable build
 - **macOS:** notarized `.dmg` for Apple silicon and Intel
@@ -312,16 +380,15 @@ It says what it does. A distinctive brand can come later.
 
 ## Contributing
 
-The project is at the design-and-foundations stage, so the most valuable contributions right now are feedback, format edge cases, and workflow ideas.
+The project is at the early-preview stage, so the most valuable contributions right now are feedback, format edge cases, and workflow ideas.
 
 - Open an issue to discuss a feature or report a bug.
 - For anything larger than a small fix, please start a discussion before opening a pull request.
 - Keep changes focused, add tests for tag-writing behavior, and never rewrite files without a backup path.
-
-A `CONTRIBUTING.md` and code of conduct will be added with the first code drop.
+- Read [`AGENTS.md`](AGENTS.md) before changing architecture or UI conventions.
 
 ---
 
 ## License
 
-`tagger` is intended to be released under the [MIT License](https://opensource.org/licenses/MIT). A `LICENSE` file will be added with the first public release.
+MIT. See [`LICENSE`](LICENSE).

@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Tagger.Domain/Tagger.Domain.csproj" />
+    <Project Path="src/Tagger.Application/Tagger.Application.csproj" />
+    <Project Path="src/Tagger.Infrastructure/Tagger.Infrastructure.csproj" />
+    <Project Path="src/Tagger.Desktop/Tagger.Desktop.csproj" />
+    <Project Path="src/Tagger.Cli/Tagger.Cli.csproj" />
+    <Project Path="src/Tagger.Mcp/Tagger.Mcp.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Tagger.Domain.Tests/Tagger.Domain.Tests.csproj" />
+    <Project Path="tests/Tagger.Application.Tests/Tagger.Application.Tests.csproj" />
+    <Project Path="tests/Tagger.Infrastructure.Tests/Tagger.Infrastructure.Tests.csproj" />
+    <Project Path="tests/Tagger.Desktop.Tests/Tagger.Desktop.Tests.csproj" />
+    <Project Path="tests/Tagger.Cli.Tests/Tagger.Cli.Tests.csproj" />
+    <Project Path="tests/Tagger.Mcp.Tests/Tagger.Mcp.Tests.csproj" />
+  </Folder>
+</Solution>

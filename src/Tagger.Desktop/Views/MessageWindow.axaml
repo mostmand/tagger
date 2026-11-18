@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Tagger.Desktop.ViewModels"
+        Icon="/Assets/tagger.png"
+        x:Class="Tagger.Desktop.Views.MessageWindow"
+        x:DataType="vm:MessageDialogViewModel"
+        Title="{Binding Title}"
+        Width="520"
+        SizeToContent="Height"
+        MinHeight="220"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="Auto,Auto,Auto" Background="{DynamicResource AppBgBrush}">
+    <TextBlock Text="{Binding Title}" FontSize="19" FontWeight="Bold" Margin="24,22,24,8" TextWrapping="Wrap" />
+    <ScrollViewer Grid.Row="1" MaxHeight="360" Margin="24,0,18,8">
+      <TextBlock Text="{Binding Message}" FontSize="13" Classes="secondary" TextWrapping="Wrap" />
+    </ScrollViewer>
+    <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="24,14">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button Classes="tool" Theme="{StaticResource ToolButtonTheme}" Content="{Binding CancelLabel}" Click="OnCancel" IsVisible="{Binding IsConfirmation}" />
+        <Button Classes="primary" Theme="{StaticResource PrimaryButtonTheme}" Content="{Binding ConfirmLabel}" Click="OnConfirm" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

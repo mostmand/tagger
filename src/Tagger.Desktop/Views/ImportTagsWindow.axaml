@@ -1,0 +1,68 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Tagger.Desktop.ViewModels"
+        Icon="/Assets/tagger.png"
+        x:Class="Tagger.Desktop.Views.ImportTagsWindow"
+        x:DataType="vm:ImportTagsViewModel"
+        Title="Tags from filename"
+        Width="960"
+        Height="660"
+        MinWidth="760"
+        MinHeight="500"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Background="{DynamicResource AppBgBrush}">
+    <StackPanel Margin="24,22,24,12" Spacing="4">
+      <TextBlock Text="Tags from filename" FontSize="22" FontWeight="Bold" />
+      <TextBlock Text="Parse names into tags. Existing values are only replaced where the filename matches."
+                 Classes="muted" />
+    </StackPanel>
+
+    <Border Grid.Row="1" Classes="card" Margin="24,0,24,12" Padding="14">
+      <StackPanel Spacing="8">
+        <TextBlock Text="FILENAME PATTERN" Classes="section" />
+        <TextBox Text="{Binding Pattern, Mode=TwoWay}" FontFamily="Cascadia Mono,Consolas,monospace" />
+        <TextBlock Text="Example: %artist% - %track% - %title%   ·   tokens can appear in any order"
+                   Classes="muted" FontSize="11" />
+      </StackPanel>
+    </Border>
+
+    <Border Grid.Row="2" Classes="card" Margin="24,0,24,12" ClipToBounds="True">
+      <Grid RowDefinitions="34,*">
+        <Grid ColumnDefinitions="1.1*,2*,80" Margin="14,0">
+          <TextBlock Text="FILE" Classes="section" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Text="PARSED TAGS" Classes="section" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="2" Text="STATUS" Classes="section" VerticalAlignment="Center" />
+        </Grid>
+        <ListBox Grid.Row="1" ItemsSource="{Binding Rows}" Background="Transparent">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ImportRowViewModel">
+              <Grid ColumnDefinitions="1.1*,2*,80" Margin="4,7">
+                <StackPanel Grid.Column="0" Spacing="1" Margin="0,0,10,0">
+                  <TextBlock Text="{Binding FileName}" FontSize="12" />
+                  <TextBlock Text="{Binding CurrentTitle}" FontSize="10" Classes="muted" />
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="{Binding ParsedPreview}" FontSize="11" Classes="secondary"
+                           TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,10,0" />
+                <TextBlock Grid.Column="2" Text="{Binding Status}" FontSize="11" Classes="muted" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="3" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+        <StackPanel VerticalAlignment="Center" Spacing="2">
+          <TextBlock Text="{Binding StatusMessage}" FontSize="12" Classes="secondary" />
+          <TextBlock Text="{Binding ErrorMessage}" FontSize="11" Foreground="{DynamicResource DangerBrush}"
+                     IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmpty}}" />
+        </StackPanel>
+        <Button Grid.Column="1" Classes="tool" Theme="{StaticResource ToolButtonTheme}" Content="Cancel" Click="OnCancel" />
+        <Button Grid.Column="2" Classes="primary" Theme="{StaticResource PrimaryButtonTheme}" Content="Import tags" Click="OnApply"
+                IsEnabled="{Binding CanApply}" />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

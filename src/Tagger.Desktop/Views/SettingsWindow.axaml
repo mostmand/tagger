@@ -1,0 +1,83 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Tagger.Desktop.ViewModels"
+        xmlns:settings="using:Tagger.Application.Settings"
+        Icon="/Assets/tagger.png"
+        x:Class="Tagger.Desktop.Views.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        Title="Settings"
+        Width="720"
+        Height="820"
+        MinWidth="620"
+        MinHeight="620"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource AppBgBrush}">
+    <StackPanel Margin="24,22,24,14" Spacing="4">
+      <TextBlock Text="Settings" FontSize="22" FontWeight="Bold" />
+      <TextBlock Text="Patterns, write safety, and appearance." Classes="muted" />
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="1" Padding="24,0,18,20">
+      <StackPanel Spacing="18">
+        <Border Classes="card" Padding="16">
+          <StackPanel Spacing="12">
+            <TextBlock Text="WORKFLOWS" Classes="section" />
+            <StackPanel Spacing="5">
+              <TextBlock Text="Rename pattern" FontSize="12" Classes="secondary" />
+              <TextBox Text="{Binding RenamePattern, Mode=TwoWay}" />
+            </StackPanel>
+            <StackPanel Spacing="5">
+              <TextBlock Text="Filename-to-tags pattern" FontSize="12" Classes="secondary" />
+              <TextBox Text="{Binding AutoTagPattern, Mode=TwoWay}" />
+            </StackPanel>
+            <CheckBox Content="Include subfolders when adding a folder" IsChecked="{Binding Recursive}" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card" Padding="16">
+          <StackPanel Spacing="12">
+            <TextBlock Text="WRITE SAFETY" Classes="section" />
+            <CheckBox Content="Preview changes before writing" IsChecked="{Binding AlwaysPreview}" />
+            <TextBlock Text="Every tag write and rename is journaled and undoable." Classes="muted" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+              <StackPanel Spacing="5">
+                <TextBlock Text="ID3v2 version" FontSize="12" Classes="secondary" />
+                <ComboBox ItemsSource="{Binding Id3Versions}" SelectedItem="{Binding Id3Version}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="5">
+                <TextBlock Text="ID3v1 behavior" FontSize="12" Classes="secondary" />
+                <ComboBox ItemsSource="{Binding Id3v1Options}" SelectedItem="{Binding Id3v1}" />
+              </StackPanel>
+            </Grid>
+            <StackPanel Spacing="5">
+              <TextBlock Text="ID3 padding (bytes)" FontSize="12" Classes="secondary" />
+              <NumericUpDown Value="{Binding Padding}" Minimum="0" Maximum="65536" Increment="256" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card" Padding="16">
+          <StackPanel Spacing="12">
+            <TextBlock Text="APPEARANCE" Classes="section" />
+            <StackPanel Spacing="5">
+              <TextBlock Text="Theme" FontSize="12" Classes="secondary" />
+              <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource DangerBrush}" FontSize="12"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmpty}}" />
+      </StackPanel>
+    </ScrollViewer>
+
+    <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+        <TextBlock Text="Settings are stored as JSON in your app config folder." Classes="muted" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Classes="tool" Theme="{StaticResource ToolButtonTheme}" Content="Cancel" Click="OnCancel" />
+        <Button Grid.Column="2" Classes="primary" Theme="{StaticResource PrimaryButtonTheme}" Content="Save settings" Click="OnSave" />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

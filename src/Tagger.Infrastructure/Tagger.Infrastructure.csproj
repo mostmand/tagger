@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Tagger.Infrastructure</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Tagger.Application/Tagger.Application.csproj" />
+    <ProjectReference Include="../Tagger.Domain/Tagger.Domain.csproj" />
+    <PackageReference Include="TagLibSharp" />
+  </ItemGroup>
+</Project>

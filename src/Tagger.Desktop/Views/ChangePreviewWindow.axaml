@@ -1,0 +1,51 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Tagger.Desktop.ViewModels"
+        Icon="/Assets/tagger.png"
+        x:Class="Tagger.Desktop.Views.ChangePreviewWindow"
+        x:DataType="vm:ChangePreviewViewModel"
+        Title="Preview changes"
+        Width="920"
+        Height="640"
+        MinWidth="720"
+        MinHeight="460"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource AppBgBrush}">
+    <StackPanel Margin="24,22,24,14" Spacing="4">
+      <TextBlock Text="{Binding Title}" FontSize="22" FontWeight="Bold" />
+      <TextBlock Text="{Binding Summary}" Classes="muted" />
+    </StackPanel>
+
+    <Border Grid.Row="1" Classes="card" Margin="24,0,24,14" ClipToBounds="True">
+      <Grid RowDefinitions="34,*">
+        <Grid ColumnDefinitions="1.2*,1*,1*,1*" Margin="14,0">
+          <TextBlock Text="FILE" Classes="section" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1" Text="FIELD" Classes="section" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="2" Text="BEFORE" Classes="section" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="3" Text="AFTER" Classes="section" VerticalAlignment="Center" />
+        </Grid>
+        <ListBox Grid.Row="1" ItemsSource="{Binding Rows}" Background="Transparent">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ChangePreviewRowViewModel">
+              <Grid ColumnDefinitions="1.2*,1*,1*,1*" Margin="4,7">
+                <TextBlock Grid.Column="0" Text="{Binding FileName}" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0" />
+                <TextBlock Grid.Column="1" Text="{Binding Field}" FontSize="11" Classes="secondary" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="{Binding Before}" FontSize="11" Classes="muted" VerticalAlignment="Center" Margin="0,0,10,0" />
+                <TextBlock Grid.Column="3" Text="{Binding After}" FontSize="11" Foreground="{DynamicResource SuccessBrush}" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="24,14">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+        <TextBlock Text="Nothing is written until you confirm." Classes="muted" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Classes="tool" Theme="{StaticResource ToolButtonTheme}" Content="Cancel" Click="OnCancel" />
+        <Button Grid.Column="2" Classes="primary" Theme="{StaticResource PrimaryButtonTheme}" Content="Apply changes" Click="OnApply" />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>
