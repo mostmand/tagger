@@ -16,7 +16,7 @@ public sealed class ImportTagsViewModelTests
 
     public ImportTagsViewModelTests()
     {
-        _sut = new ImportTagsViewModel(_importService, _saveService);
+        _sut = new ImportTagsViewModel(_importService, _saveService, new PassThroughMutationGuard());
     }
 
     [Fact]

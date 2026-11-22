@@ -1,0 +1,187 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Tagger.Desktop.ViewModels"
+             x:Class="Tagger.Desktop.Views.PlayerBar"
+             x:DataType="vm:PlayerViewModel"
+             IsVisible="{Binding ShowBar}">
+
+  <Border Background="{DynamicResource SurfaceBrush}"
+          BorderBrush="{DynamicResource BorderBrush}"
+          BorderThickness="0,1,0,0"
+          CornerRadius="12"
+          Padding="14,10">
+    <Grid ColumnDefinitions="280,*,260" ColumnSpacing="18">
+
+      <!-- now playing -->
+      <Grid ColumnDefinitions="48,*" ColumnSpacing="10" VerticalAlignment="Center">
+        <Border Width="48" Height="48" CornerRadius="8" ClipToBounds="True"
+                Background="{DynamicResource AccentSoftBrush}">
+          <Panel>
+            <ContentControl Theme="{StaticResource MusicNoteIconTheme}"
+                            Width="20" Height="20"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            IsVisible="{Binding !HasArtwork}" />
+            <Image Source="{Binding ArtworkBytes, Converter={StaticResource ArtworkConverter}}"
+                   Stretch="UniformToFill" />
+          </Panel>
+        </Border>
+
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+          <TextBlock Text="{Binding Title}"
+                     FontSize="13"
+                     FontWeight="SemiBold"
+                     TextTrimming="CharacterEllipsis"
+                     MaxLines="1" />
+          <TextBlock Text="{Binding Subtitle}"
+                     FontSize="11"
+                     Classes="muted"
+                     TextTrimming="CharacterEllipsis"
+                     MaxLines="1" />
+          <TextBlock Text="{Binding ErrorMessage}"
+                     FontSize="10"
+                     Foreground="{DynamicResource DangerBrush}"
+                     TextTrimming="CharacterEllipsis"
+                     MaxLines="1"
+                     IsVisible="{Binding HasError}" />
+        </StackPanel>
+      </Grid>
+
+      <!-- transport and seek -->
+      <Grid Grid.Column="1" RowDefinitions="Auto,Auto" RowSpacing="6" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+          <Button Classes="icon"
+                  Theme="{StaticResource IconButtonTheme}"
+                  Command="{Binding PreviousCommand}"
+                  IsEnabled="{Binding CanGoPrevious}"
+                  ToolTip.Tip="Previous (Ctrl+Left)"
+                  AutomationProperties.Name="Previous track">
+            <Path Data="M7,5 V19 M19,5 L9,12 L19,19 Z"
+                  Stroke="{DynamicResource TextSecondaryBrush}"
+                  StrokeThickness="1.4"
+                  Fill="Transparent"
+                  Width="14" Height="14" Stretch="Uniform" />
+          </Button>
+
+          <Button Classes="primary"
+                  Theme="{StaticResource PrimaryButtonTheme}"
+                  Width="42" Height="38"
+                  Padding="0"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center"
+                  Command="{Binding TogglePlayPauseCommand}"
+                  IsEnabled="{Binding HasTrack}"
+                  ToolTip.Tip="{Binding PlayPauseTooltip}"
+                  AutomationProperties.Name="{Binding PlayPauseTooltip}">
+            <TextBlock Text="{Binding PlayPauseGlyph}"
+                       FontSize="15"
+                       Foreground="{DynamicResource OnAccentBrush}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+          </Button>
+
+          <Button Classes="icon"
+                  Theme="{StaticResource IconButtonTheme}"
+                  Command="{Binding NextCommand}"
+                  IsEnabled="{Binding CanGoNext}"
+                  ToolTip.Tip="Next (Ctrl+Right)"
+                  AutomationProperties.Name="Next track">
+            <Path Data="M17,5 V19 M5,5 L15,12 L5,19 Z"
+                  Stroke="{DynamicResource TextSecondaryBrush}"
+                  StrokeThickness="1.4"
+                  Fill="Transparent"
+                  Width="14" Height="14" Stretch="Uniform" />
+          </Button>
+
+          <Button Classes="icon"
+                  Theme="{StaticResource IconButtonTheme}"
+                  Command="{Binding StopCommand}"
+                  IsEnabled="{Binding HasTrack}"
+                  ToolTip.Tip="Stop"
+                  AutomationProperties.Name="Stop">
+            <Path Data="M6,6 H18 V18 H6 Z"
+                  Stroke="{DynamicResource TextSecondaryBrush}"
+                  StrokeThickness="1.4"
+                  Fill="Transparent"
+                  Width="13" Height="13" Stretch="Uniform" />
+          </Button>
+        </StackPanel>
+
+        <Grid Grid.Row="1" ColumnDefinitions="42,*,42" ColumnSpacing="8">
+          <TextBlock Text="{Binding PositionText}"
+                     FontSize="10"
+                     Classes="muted"
+                     VerticalAlignment="Center"
+                     HorizontalAlignment="Right" />
+          <Slider x:Name="SeekSlider"
+                  Grid.Column="1"
+                  Minimum="0"
+                  Maximum="{Binding DurationSeconds}"
+                  Value="{Binding PositionSeconds, Mode=TwoWay}"
+                  IsEnabled="{Binding HasTrack}"
+                  VerticalAlignment="Center"
+                  AutomationProperties.Name="Seek" />
+          <TextBlock Grid.Column="2"
+                     Text="{Binding DurationText}"
+                     FontSize="10"
+                     Classes="muted"
+                     VerticalAlignment="Center" />
+        </Grid>
+      </Grid>
+
+      <!-- repeat, volume, queue -->
+      <Grid Grid.Column="2" ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+        <Button Classes="tool"
+                Theme="{StaticResource ToolButtonTheme}"
+                Padding="8,5"
+                Command="{Binding CycleRepeatCommand}"
+                ToolTip.Tip="{Binding RepeatTooltip}"
+                AutomationProperties.Name="{Binding RepeatTooltip}">
+          <StackPanel Orientation="Horizontal" Spacing="5">
+            <TextBlock Text="↻" FontSize="13" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding RepeatLabel}" FontSize="10" VerticalAlignment="Center" />
+            <Border Width="5" Height="5" CornerRadius="3"
+                    Background="{DynamicResource AccentBrush}"
+                    IsVisible="{Binding IsRepeatActive}"
+                    VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+        <Button Grid.Column="1"
+                Classes="icon"
+                Theme="{StaticResource IconButtonTheme}"
+                Command="{Binding ToggleMuteCommand}"
+                ToolTip.Tip="{Binding MuteTooltip}"
+                AutomationProperties.Name="{Binding MuteTooltip}">
+          <Panel Width="15" Height="15">
+            <Path Data="M4,9 H7 L11,5 V19 L7,15 H4 Z M14,9 a4,4 0 0 1 0,6"
+                  Stroke="{DynamicResource TextSecondaryBrush}"
+                  StrokeThickness="1.3"
+                  Fill="Transparent"
+                  Stretch="Uniform" />
+            <Path Data="M3,3 L21,21"
+                  Stroke="{DynamicResource DangerBrush}"
+                  StrokeThickness="1.4"
+                  Stretch="Uniform"
+                  IsVisible="{Binding IsMuted}" />
+          </Panel>
+        </Button>
+
+        <Slider Grid.Column="2"
+                Width="96"
+                Minimum="0"
+                Maximum="100"
+                Value="{Binding Volume, Mode=TwoWay}"
+                VerticalAlignment="Center"
+                ToolTip.Tip="Volume"
+                AutomationProperties.Name="Volume" />
+
+        <TextBlock Grid.Column="3"
+                   Text="{Binding QueueText}"
+                   FontSize="10"
+                   Classes="muted"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Center" />
+      </Grid>
+    </Grid>
+  </Border>
+</UserControl>

@@ -30,6 +30,7 @@ public partial class App : Avalonia.Application
             desktop.MainWindow = window;
 
             window.Opened += async (_, _) => await viewModel.InitializeAsync();
+            desktop.ShutdownRequested += (_, _) => (Services as IDisposable)?.Dispose();
         }
 
         base.OnFrameworkInitializationCompleted();

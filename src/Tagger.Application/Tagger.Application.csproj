@@ -4,5 +4,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Tagger.Domain/Tagger.Domain.csproj" />
+    <InternalsVisibleTo Include="Tagger.Application.Tests" />
   </ItemGroup>
 </Project>

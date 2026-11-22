@@ -18,5 +18,23 @@
     <PackageReference Include="Avalonia.Fonts.Inter" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows"
+                      Condition="$([MSBuild]::IsOSPlatform('Windows')) Or $(RuntimeIdentifier.StartsWith('win'))" />
+    <PackageReference Include="VideoLAN.LibVLC.Mac"
+                      Condition="$([MSBuild]::IsOSPlatform('OSX')) Or $(RuntimeIdentifier.StartsWith('osx'))" />
   </ItemGroup>
+
+  <!-- Linux has no official LibVLC native package. A portable runtime is
+       produced by build/libvlc-linux/build.sh and copied next to the app. -->
+  <Target Name="CopyLinuxVlcRuntime"
+          AfterTargets="Build"
+          Condition="$([MSBuild]::IsOSPlatform('Linux')) And Exists('$(MSBuildProjectDirectory)/libvlc/linux-x64')">
+    <Exec Command="mkdir -p &quot;$(OutDir)libvlc/linux-x64&quot; &amp;&amp; cp -au &quot;$(MSBuildProjectDirectory)/libvlc/linux-x64/.&quot; &quot;$(OutDir)libvlc/linux-x64/&quot;" />
+  </Target>
+
+  <Target Name="PublishLinuxVlcRuntime"
+          AfterTargets="Publish"
+          Condition="$([MSBuild]::IsOSPlatform('Linux')) And Exists('$(MSBuildProjectDirectory)/libvlc/linux-x64')">
+    <Exec Command="mkdir -p &quot;$(PublishDir)libvlc/linux-x64&quot; &amp;&amp; cp -au &quot;$(MSBuildProjectDirectory)/libvlc/linux-x64/.&quot; &quot;$(PublishDir)libvlc/linux-x64/&quot;" />
+  </Target>
 </Project>

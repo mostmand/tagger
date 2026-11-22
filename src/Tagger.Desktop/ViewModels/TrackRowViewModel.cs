@@ -5,11 +5,14 @@ namespace Tagger.Desktop.ViewModels;
 
 public abstract class ViewModelBase : ObservableObject;
 
-public sealed class TrackRowViewModel : LibraryNodeViewModel
+public sealed partial class TrackRowViewModel : LibraryNodeViewModel
 {
     private Track _track;
     private int _index;
     private string _folderDisplay;
+
+    [ObservableProperty]
+    private bool _isCurrent;
 
     public TrackRowViewModel(Track track, int index)
     {

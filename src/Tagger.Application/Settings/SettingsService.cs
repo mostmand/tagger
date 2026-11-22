@@ -48,7 +48,13 @@ public sealed class SettingsService : ISettingsService
             RenamePattern = renamePattern,
             AutoTagPattern = autoTagPattern,
             Theme = Enum.IsDefined(settings.Theme) ? settings.Theme : AppTheme.Dark,
-            LastFolder = string.IsNullOrWhiteSpace(settings.LastFolder) ? null : settings.LastFolder.Trim()
+            LastFolder = string.IsNullOrWhiteSpace(settings.LastFolder) ? null : settings.LastFolder.Trim(),
+            PlaybackVolume = double.IsFinite(settings.PlaybackVolume)
+                ? Math.Clamp(settings.PlaybackVolume, 0d, 1d)
+                : AppSettings.Default.PlaybackVolume,
+            PlaybackRepeat = Enum.IsDefined(settings.PlaybackRepeat)
+                ? settings.PlaybackRepeat
+                : Playback.RepeatMode.Off
         };
     }
 }

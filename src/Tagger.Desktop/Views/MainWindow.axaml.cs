@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Tagger.Desktop.ViewModels;
 
 namespace Tagger.Desktop.Views;
@@ -12,6 +13,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        AddHandler(KeyDownEvent, OnPlaybackKeyDown, RoutingStrategies.Tunnel);
     }
 
     protected override void OnDataContextChanged(EventArgs e)
@@ -107,6 +109,61 @@ public partial class MainWindow : Window
             _syncingSelection = false;
         }
     }
+
+    private void OnPlaybackKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_viewModel is null || IsTextInputFocused())
+        {
+            return;
+        }
+
+        if (e.Key == Key.Space &&
+            _viewModel.Player.ShowBar &&
+            !IsSpaceConsumedByFocus())
+        {
+            _ = _viewModel.TogglePlaybackAsync();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter && TrackTree.IsKeyboardFocusWithin)
+        {
+            _ = _viewModel.PlaySelectionAsync();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Right && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            _ = _viewModel.PlayNextAsync();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Left && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            _ = _viewModel.PlayPreviousAsync();
+            e.Handled = true;
+        }
+    }
+
+    private void OnTrackDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        // The TreeViewItem captures the pointer, so the gesture is raised on its
+        // content presenter and never bubbles through the row template.
+        if (_viewModel is not null &&
+            e.Source is Control { DataContext: TrackRowViewModel row })
+        {
+            _ = _viewModel.PlayRowAsync(row);
+            e.Handled = true;
+        }
+    }
+
+    private bool IsTextInputFocused() =>
+        (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement()) is TextBox;
+
+    /// <summary>
+    /// Space is a global play shortcut only when the focused control does not use it
+    /// itself. Buttons, sliders, combo boxes, and menu items must keep their own
+    /// keyboard activation.
+    /// </summary>
+    private bool IsSpaceConsumedByFocus() =>
+        (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement()) is
+            TextBox or Button or Slider or ComboBox or MenuItem;
 
     private void OnTrackSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {

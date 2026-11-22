@@ -10,3 +10,6 @@ artifacts/
 *.db
 *.log
 .DS_Store
+
+# Portable Linux libvlc runtime, produced by build/libvlc-linux/build.sh
+src/Tagger.Desktop/libvlc/

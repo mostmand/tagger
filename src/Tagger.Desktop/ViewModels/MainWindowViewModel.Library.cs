@@ -74,6 +74,11 @@ public sealed partial class MainWindowViewModel
             MergeTracks(result.Tracks);
         }
 
+        var missing = pathsToRemove
+            .Where(path => !_allTracks.Any(row => PathComparisonEquals(row.FilePath, path)))
+            .ToList();
+        Player.RemoveFromQueue(missing);
+
         ApplyFolderLabels();
         RefreshVisible();
         RaiseCollectionState();
@@ -87,6 +92,7 @@ public sealed partial class MainWindowViewModel
             if (existing is not null)
             {
                 existing.Update(track);
+                Player.UpdateTrack(track);
             }
             else
             {
@@ -109,6 +115,7 @@ public sealed partial class MainWindowViewModel
             }
 
             row.Update(track);
+            Player.UpdateTrack(track);
         }
 
         RenumberRows();
@@ -197,6 +204,9 @@ public sealed partial class MainWindowViewModel
 
     private void RemoveRows(IEnumerable<TrackRowViewModel> rows)
     {
+        var paths = rows.Select(row => row.FilePath).ToList();
+        Player.RemoveFromQueue(paths);
+
         foreach (var row in rows.ToList())
         {
             _allTracks.Remove(row);

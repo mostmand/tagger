@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Tagger.Application.Editing;
 using Tagger.Application.Importing;
 using Tagger.Domain.Naming;
+using Tagger.Desktop.Services;
 using Tagger.Domain.Tracks;
 
 namespace Tagger.Desktop.ViewModels;
@@ -37,6 +38,7 @@ public sealed partial class ImportTagsViewModel : ViewModelBase
 {
     private readonly IFilenameImportService _importService;
     private readonly ITagSaveService _saveService;
+    private readonly IPlaybackMutationGuard _mutationGuard;
     private IReadOnlyList<Track> _tracks = [];
     private bool _initializing;
 
@@ -58,10 +60,14 @@ public sealed partial class ImportTagsViewModel : ViewModelBase
     [ObservableProperty]
     private string _statusMessage = "Preview the tags that will be read from filenames.";
 
-    public ImportTagsViewModel(IFilenameImportService importService, ITagSaveService saveService)
+    public ImportTagsViewModel(
+        IFilenameImportService importService,
+        ITagSaveService saveService,
+        IPlaybackMutationGuard mutationGuard)
     {
         _importService = importService;
         _saveService = saveService;
+        _mutationGuard = mutationGuard;
     }
 
     public ObservableCollection<ImportRowViewModel> Rows { get; } = [];
@@ -98,9 +104,13 @@ public sealed partial class ImportTagsViewModel : ViewModelBase
                 .Select(x => new TagEditRequest(x.Track, x.Changes))
                 .ToList();
 
-            var result = await _saveService.ApplyAsync(
-                requests,
-                $"Import tags for {requests.Count} track{(requests.Count == 1 ? string.Empty : "s")}",
+            var result = await _mutationGuard.RunAsync(
+                requests.Select(request => request.Track.FilePath).ToList(),
+                () => _saveService.ApplyAsync(
+                    requests,
+                    $"Import tags for {requests.Count} track{(requests.Count == 1 ? string.Empty : "s")}",
+                    cancellationToken),
+                saveResult => saveResult.UpdatedTracks,
                 cancellationToken);
 
             UpdatedTracks = result.UpdatedTracks;

@@ -28,7 +28,8 @@ public sealed class TagEditorViewModelTests
             _previewService,
             _coverArt,
             _dialogs,
-            _clock);
+            _clock,
+            new PassThroughMutationGuard());
     }
 
     [Fact]

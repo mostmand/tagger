@@ -6,6 +6,7 @@ using Tagger.Application.Editing;
 using Tagger.Application.Importing;
 using Tagger.Application.Journal;
 using Tagger.Application.Library;
+using Tagger.Application.Playback;
 using Tagger.Application.Renaming;
 using Tagger.Application.Settings;
 using Tagger.Desktop.Services;
@@ -16,6 +17,7 @@ using Tagger.Infrastructure.Artwork;
 using Tagger.Infrastructure.Files;
 using Tagger.Infrastructure.Journal;
 using Tagger.Infrastructure.Metadata;
+using Tagger.Infrastructure.Playback;
 using Tagger.Infrastructure.Settings;
 
 namespace Tagger.Desktop;
@@ -40,6 +42,11 @@ public static class Bootstrapper
         services.AddSingleton<IChangeJournal>(_ => new JsonChangeJournal());
         services.AddSingleton<ISettingsStore>(_ => new JsonSettingsStore());
 
+        services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
+        services.AddSingleton<IPlaybackMutationGuard, PlaybackMutationGuard>();
+        services.AddSingleton<IAudioPlayer, LibVlcAudioPlayer>();
+        services.AddSingleton<IPlaybackService, PlaybackService>();
+
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<ILibraryService, LibraryService>();
         services.AddSingleton<IChangePreviewService, ChangeSetPreviewService>();
@@ -53,6 +60,7 @@ public static class Bootstrapper
         services.AddSingleton<FilenamePatternParser>();
 
         services.AddSingleton<TagEditorViewModel>();
+        services.AddSingleton<PlayerViewModel>();
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>();
 

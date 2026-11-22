@@ -29,5 +29,11 @@ public sealed record AppSettings
 
     public bool BackupBeforeWrite { get; init; } = true;
 
+    public double PlaybackVolume { get; init; } = 0.8;
+
+    public bool PlaybackMuted { get; init; }
+
+    public Playback.RepeatMode PlaybackRepeat { get; init; } = Playback.RepeatMode.Off;
+
     public static AppSettings Default { get; } = new();
 }

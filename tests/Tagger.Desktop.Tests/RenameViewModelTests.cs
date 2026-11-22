@@ -14,7 +14,7 @@ public sealed class RenameViewModelTests
 
     public RenameViewModelTests()
     {
-        _sut = new RenameViewModel(_renameService);
+        _sut = new RenameViewModel(_renameService, new PassThroughMutationGuard());
     }
 
     [Fact]

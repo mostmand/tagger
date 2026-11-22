@@ -6,5 +6,6 @@
     <ProjectReference Include="../Tagger.Application/Tagger.Application.csproj" />
     <ProjectReference Include="../Tagger.Domain/Tagger.Domain.csproj" />
     <PackageReference Include="TagLibSharp" />
+    <PackageReference Include="LibVLCSharp" />
   </ItemGroup>
 </Project>

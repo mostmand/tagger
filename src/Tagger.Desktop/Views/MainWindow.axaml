@@ -20,7 +20,7 @@
     <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
   </Window.KeyBindings>
 
-  <Grid RowDefinitions="64,*,30">
+  <Grid RowDefinitions="64,*,Auto,30">
     <!-- ============================ top bar ============================ -->
     <Border Grid.Row="0"
             Background="{DynamicResource SurfaceBrush}"
@@ -230,6 +230,12 @@
               <Button Classes="icon" Theme="{StaticResource IconButtonTheme}" Command="{Binding ToggleSortDirectionCommand}" ToolTip.Tip="Reverse sort direction">
                 <TextBlock Text="↕" FontSize="15" />
               </Button>
+              <Button Classes="tool" Theme="{StaticResource ToolButtonTheme}" Command="{Binding PlaySelectionCommand}" IsEnabled="{Binding HasTracks}" ToolTip.Tip="Play selection or visible tracks">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Path Data="M8,5 L18,12 L8,19 Z" Fill="{DynamicResource AccentBrush}" Width="11" Height="11" Stretch="Uniform" />
+                  <TextBlock Text="Play" />
+                </StackPanel>
+              </Button>
               <Button Classes="tool" Theme="{StaticResource ToolButtonTheme}" Command="{Binding ClearLibraryCommand}" ToolTip.Tip="Unload all files (does not delete them)">
                 <TextBlock Text="Clear" />
               </Button>
@@ -243,7 +249,8 @@
                       SelectionMode="Multiple"
                       Padding="6,2,6,8"
                       ItemContainerTheme="{StaticResource LibraryTreeItemTheme}"
-                      SelectionChanged="OnTrackSelectionChanged">
+                      SelectionChanged="OnTrackSelectionChanged"
+                      DoubleTapped="OnTrackDoubleTapped">
               <TreeView.KeyBindings>
                 <KeyBinding Gesture="Delete" Command="{Binding RemoveSelectionCommand}" />
                 <KeyBinding Gesture="F2" Command="{Binding RenameCommand}" />
@@ -280,16 +287,22 @@
                 </TreeDataTemplate>
 
                 <DataTemplate DataType="vm:TrackRowViewModel" x:DataType="vm:TrackRowViewModel">
-                  <Grid ColumnDefinitions="*,Auto"
+                  <Grid ColumnDefinitions="Auto,*,Auto"
                         Height="44"
                         Margin="4,0,10,0"
                         AutomationProperties.Name="{Binding Title}"
                         ToolTip.Tip="{Binding FilePath}">
-                    <StackPanel VerticalAlignment="Center" Spacing="1" Margin="0,0,16,0">
+                    <TextBlock Text="▶"
+                               FontSize="9"
+                               Foreground="{DynamicResource AccentBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,7,0"
+                               IsVisible="{Binding IsCurrent}" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1" Margin="0,0,16,0">
                       <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" />
                       <TextBlock Text="{Binding DetailLine}" FontSize="10" Classes="muted" />
                     </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                       <TextBlock Text="{Binding Duration}" FontSize="11" Classes="muted" VerticalAlignment="Center" />
                       <Border Background="{DynamicResource SurfaceRaisedBrush}" CornerRadius="4" Padding="5,2" VerticalAlignment="Center">
                         <TextBlock Text="{Binding Format}" FontSize="9" FontWeight="Bold" Classes="secondary" />
@@ -496,8 +509,13 @@
       </Border>
     </Grid>
 
+    <!-- ============================ player bar ============================ -->
+    <views:PlayerBar Grid.Row="2"
+                     DataContext="{Binding Player}"
+                     Margin="12,0,12,8" />
+
     <!-- ============================ status bar ============================ -->
-    <Border Grid.Row="2"
+    <Border Grid.Row="3"
             Background="{DynamicResource SurfaceBrush}"
             BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="0,1,0,0">
@@ -511,7 +529,7 @@
       </Grid>
     </Border>
 
-    <views:ArtworkViewerView Grid.RowSpan="3"
+    <views:ArtworkViewerView Grid.RowSpan="4"
                              ZIndex="10"
                              DataContext="{Binding Editor.ArtworkViewer}" />
   </Grid>

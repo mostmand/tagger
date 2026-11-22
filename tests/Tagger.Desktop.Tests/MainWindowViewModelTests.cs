@@ -7,6 +7,7 @@ using Tagger.Application.Duplicates;
 using Tagger.Application.Editing;
 using Tagger.Application.Journal;
 using Tagger.Application.Library;
+using Tagger.Application.Playback;
 using Tagger.Application.Settings;
 using Tagger.Domain.Tracks;
 using Tagger.Desktop.Services;
@@ -26,6 +27,7 @@ public sealed class MainWindowViewModelTests
     private readonly ITagSaveService _saveService = Substitute.For<ITagSaveService>();
     private readonly ICoverArtService _coverArt = Substitute.For<ICoverArtService>();
     private readonly IClock _clock = Substitute.For<IClock>();
+    private readonly IPlaybackService _playback = Substitute.For<IPlaybackService>();
     private readonly TagEditorViewModel _editor;
     private readonly MainWindowViewModel _sut;
 
@@ -33,13 +35,16 @@ public sealed class MainWindowViewModelTests
     {
         _clock.UtcNow.Returns(new DateTimeOffset(2026, 11, 13, 10, 0, 0, TimeSpan.Zero));
         _settingsService.LoadAsync(Arg.Any<CancellationToken>()).Returns(AppSettings.Default);
+        _playback.Snapshot.Returns(PlaybackSnapshot.Initial);
+        _playback.Repeat.Returns(RepeatMode.Off);
         _editor = new TagEditorViewModel(
             new SelectionSummaryService(),
             _saveService,
             new ChangeSetPreviewService(),
             _coverArt,
             _dialogs,
-            _clock);
+            _clock,
+            new PassThroughMutationGuard());
         _sut = new MainWindowViewModel(
             _library,
             _settingsService,
@@ -47,7 +52,8 @@ public sealed class MainWindowViewModelTests
             _dialogs,
             _undo,
             _duplicates,
-            _editor);
+            _editor,
+            new PlayerViewModel(_playback, new ImmediateUiDispatcher()));
     }
 
     [Fact]
@@ -64,6 +70,115 @@ public sealed class MainWindowViewModelTests
         Assert.Equal(AppTheme.Light, _sut.Settings.Theme);
         _theme.Received(1).Apply(AppTheme.Light);
         Assert.Contains("Add a folder", _sut.StatusMessage);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_ShouldApplyPlaybackPreferences_WhenSettingsLoaded()
+    {
+        // Arrange
+        var settings = AppSettings.Default with
+        {
+            PlaybackVolume = 0.35,
+            PlaybackMuted = true,
+            PlaybackRepeat = RepeatMode.All
+        };
+        _settingsService.LoadAsync(Arg.Any<CancellationToken>()).Returns(settings);
+        _playback.ClearReceivedCalls();
+
+        // Act
+        await _sut.InitializeAsync();
+
+        // Assert
+        _playback.Received(1).SetVolume(0.35d);
+        _playback.Received(1).SetMuted(true);
+        _playback.Received(1).SetRepeat(RepeatMode.All);
+    }
+
+    [Fact]
+    public async Task PlaySelectionCommand_ShouldUseVisibleQueueAndSelectedIndex_WhenSelectionExists()
+    {
+        // Arrange
+        var tracks = new[]
+        {
+            TestTrack.Create("01 - one.mp3"),
+            TestTrack.Create("02 - two.mp3"),
+            TestTrack.Create("03 - three.mp3")
+        };
+        _library.LoadAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<bool>(), Arg.Any<IProgress<LibraryProgress>?>(), Arg.Any<CancellationToken>())
+            .Returns(new LibraryLoadResult(tracks, [], 3));
+        await _sut.LoadPathsAsync(["music"]);
+        _sut.SetSelection([_sut.VisibleTracks[1], _sut.VisibleTracks[2]]);
+        _playback.ClearReceivedCalls();
+
+        // Act
+        await _sut.PlaySelectionCommand.ExecuteAsync(null);
+
+        // Assert
+        await _playback.Received(1).PlayAsync(
+            Arg.Is<IReadOnlyList<Track>>(queue =>
+                queue.Count == 3 &&
+                queue[0].FileName == "01 - one.mp3" &&
+                queue[1].FileName == "02 - two.mp3"),
+            1,
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task PlayRowAsync_ShouldStartAtRowIndex_WhenRowIsVisible()
+    {
+        // Arrange
+        var tracks = new[]
+        {
+            TestTrack.Create("01 - one.mp3"),
+            TestTrack.Create("02 - two.mp3")
+        };
+        _library.LoadAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<bool>(), Arg.Any<IProgress<LibraryProgress>?>(), Arg.Any<CancellationToken>())
+            .Returns(new LibraryLoadResult(tracks, [], 2));
+        await _sut.LoadPathsAsync(["music"]);
+        _playback.ClearReceivedCalls();
+
+        // Act
+        await _sut.PlayRowAsync(_sut.VisibleTracks[1]);
+
+        // Assert
+        await _playback.Received(1).PlayAsync(
+            Arg.Any<IReadOnlyList<Track>>(),
+            1,
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task RemoveSelectionCommand_ShouldRemovePathsFromQueue_WhenSelectionIsUnloaded()
+    {
+        // Arrange
+        var track = TestTrack.Create("song.mp3");
+        _library.LoadAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<bool>(), Arg.Any<IProgress<LibraryProgress>?>(), Arg.Any<CancellationToken>())
+            .Returns(new LibraryLoadResult([track], [], 1));
+        await _sut.LoadPathsAsync(["music"]);
+        _sut.SetSelection([_sut.VisibleTracks[0]]);
+        _playback.ClearReceivedCalls();
+
+        // Act
+        _sut.RemoveSelectionCommand.Execute(null);
+
+        // Assert
+        _playback.Received(1).RemoveFromQueue(
+            Arg.Is<IReadOnlyList<string>>(paths => paths.Contains(track.FilePath)));
+    }
+
+    [Fact]
+    public async Task LoadPathsAsync_ShouldShowPlayerBar_WhenLibraryHasTracks()
+    {
+        // Arrange
+        var track = TestTrack.Create("song.mp3");
+        _library.LoadAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<bool>(), Arg.Any<IProgress<LibraryProgress>?>(), Arg.Any<CancellationToken>())
+            .Returns(new LibraryLoadResult([track], [], 1));
+
+        // Act
+        await _sut.LoadPathsAsync(["music"]);
+
+        // Assert
+        Assert.True(_sut.Player.ShowBar);
     }
 
     [Fact]
@@ -310,5 +425,42 @@ public sealed class MainWindowViewModelTests
         // Assert
         Assert.True(_sut.SortDescending);
         Assert.Equal("Zulu", _sut.VisibleTracks[0].Title);
+    }
+
+    [Fact]
+    public async Task PlaybackFailed_ShouldSurfaceMessageInStatusBar_WhenPlayerReportsFailure()
+    {
+        // Arrange
+        var track = TestTrack.Create("song.mp3");
+        _library.LoadAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<bool>(), Arg.Any<IProgress<LibraryProgress>?>(), Arg.Any<CancellationToken>())
+            .Returns(new LibraryLoadResult([track], [], 1));
+        await _sut.LoadPathsAsync(["music"]);
+
+        // Act
+        _playback.Failed += Raise.Event<EventHandler<PlaybackFailure>>(
+            _playback,
+            new PlaybackFailure(track.FilePath, "unsupported codec"));
+
+        // Assert
+        Assert.Equal("unsupported codec", _sut.StatusMessage);
+    }
+
+    [Fact]
+    public async Task CurrentTrackChanged_ShouldMarkOnlyPlayingRow_WhenTrackStarts()
+    {
+        // Arrange
+        var first = TestTrack.Create("one.mp3");
+        var second = TestTrack.Create("two.mp3");
+        _library.LoadAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<bool>(), Arg.Any<IProgress<LibraryProgress>?>(), Arg.Any<CancellationToken>())
+            .Returns(new LibraryLoadResult([first, second], [], 2));
+        await _sut.LoadPathsAsync(["music"]);
+        _playback.CurrentTrack.Returns(first);
+
+        // Act
+        _playback.CurrentTrackChanged += Raise.EventWith(_playback, EventArgs.Empty);
+
+        // Assert
+        Assert.True(_sut.VisibleTracks[0].IsCurrent);
+        Assert.False(_sut.VisibleTracks[1].IsCurrent);
     }
 }

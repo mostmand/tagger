@@ -18,6 +18,7 @@ public sealed partial class TagEditorViewModel : ViewModelBase
     private readonly ICoverArtService _coverArtService;
     private readonly IDialogService _dialogs;
     private readonly IClock _clock;
+    private readonly IPlaybackMutationGuard _mutationGuard;
 
     private IReadOnlyList<Track> _tracks = [];
     private CoverArtUpdate _artworkUpdate = CoverArtUpdate.Keep;
@@ -55,7 +56,8 @@ public sealed partial class TagEditorViewModel : ViewModelBase
         IChangePreviewService previewService,
         ICoverArtService coverArtService,
         IDialogService dialogs,
-        IClock clock)
+        IClock clock,
+        IPlaybackMutationGuard mutationGuard)
     {
         _summaryService = summaryService;
         _saveService = saveService;
@@ -63,6 +65,7 @@ public sealed partial class TagEditorViewModel : ViewModelBase
         _coverArtService = coverArtService;
         _dialogs = dialogs;
         _clock = clock;
+        _mutationGuard = mutationGuard;
 
         var year = clock.UtcNow.Year;
         AllFields = TagFieldCatalog.All
@@ -196,7 +199,11 @@ public sealed partial class TagEditorViewModel : ViewModelBase
                 .Select(track => new TagEditRequest(track, changes, _artworkUpdate))
                 .ToList();
 
-            var result = await _saveService.ApplyAsync(requests, BuildSummary(preview), cancellationToken);
+            var result = await _mutationGuard.RunAsync(
+                requests.Select(request => request.Track.FilePath).ToList(),
+                () => _saveService.ApplyAsync(requests, BuildSummary(preview), cancellationToken),
+                saveResult => saveResult.UpdatedTracks,
+                cancellationToken);
 
             if (result.UpdatedTracks.Count > 0)
             {

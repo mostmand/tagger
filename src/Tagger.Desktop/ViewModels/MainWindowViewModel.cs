@@ -75,7 +75,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         IDialogService dialogs,
         IUndoService undo,
         IDuplicateFinder duplicates,
-        TagEditorViewModel editor)
+        TagEditorViewModel editor,
+        PlayerViewModel player)
     {
         _library = library;
         _settingsService = settingsService;
@@ -84,7 +85,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _undo = undo;
         _duplicates = duplicates;
         Editor = editor;
+        Player = player;
         Editor.Saved += OnEditorSaved;
+        Player.PreferencesChanged += OnPlayerPreferencesChanged;
+        Player.CurrentTrackChanged += OnPlayerTrackChanged;
+        Player.PlaybackFailed += (_, message) => StatusMessage = message;
         Editor.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName is nameof(TagEditorViewModel.HasChanges) or nameof(TagEditorViewModel.IsBusy))
@@ -122,6 +127,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         Settings = await _settingsService.LoadAsync(cancellationToken);
         _theme.Apply(Settings.Theme);
+        Player.ApplyPreferences(Settings.PlaybackVolume, Settings.PlaybackMuted, Settings.PlaybackRepeat);
 
         if (!string.IsNullOrWhiteSpace(Settings.LastFolder) &&
             Directory.Exists(Settings.LastFolder))
@@ -185,7 +191,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         TrackCount = _allTracks.Count;
         CollectionSummary = BuildCollectionSummary();
+        Player.ShowBar = _allTracks.Count > 0;
         OnPropertyChanged(nameof(HasTracks));
+        OnPropertyChanged(nameof(CanPlay));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(CanSave));
     }

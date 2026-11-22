@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Tagger.Application.Renaming;
 using Tagger.Domain.Naming;
+using Tagger.Desktop.Services;
 using Tagger.Domain.Tracks;
 
 namespace Tagger.Desktop.ViewModels;
@@ -39,6 +40,7 @@ public sealed class RenameRowViewModel
 public sealed partial class RenameViewModel : ViewModelBase
 {
     private readonly IRenameService _renameService;
+    private readonly IPlaybackMutationGuard _mutationGuard;
     private IReadOnlyList<Track> _tracks = [];
     private bool _initializing;
 
@@ -60,9 +62,10 @@ public sealed partial class RenameViewModel : ViewModelBase
     [ObservableProperty]
     private string _statusMessage = "Adjust the pattern to preview new filenames.";
 
-    public RenameViewModel(IRenameService renameService)
+    public RenameViewModel(IRenameService renameService, IPlaybackMutationGuard mutationGuard)
     {
         _renameService = renameService;
+        _mutationGuard = mutationGuard;
     }
 
     public ObservableCollection<RenameRowViewModel> Rows { get; } = [];
@@ -96,9 +99,18 @@ public sealed partial class RenameViewModel : ViewModelBase
                 return false;
             }
 
-            var result = await _renameService.ExecuteAsync(
-                plan,
-                $"Rename {plan.ChangeCount} file{(plan.ChangeCount == 1 ? string.Empty : "s")}",
+            var paths = plan.Entries
+                .Where(entry => entry.IsValid && !entry.IsNoOp)
+                .Select(entry => entry.Track.FilePath)
+                .ToList();
+
+            var result = await _mutationGuard.RunAsync(
+                paths,
+                () => _renameService.ExecuteAsync(
+                    plan,
+                    $"Rename {plan.ChangeCount} file{(plan.ChangeCount == 1 ? string.Empty : "s")}",
+                    cancellationToken),
+                renameResult => renameResult.UpdatedTracks,
                 cancellationToken);
 
             UpdatedTracks = result.UpdatedTracks;

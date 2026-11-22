@@ -69,6 +69,14 @@ Mp3tag is excellent, but it is Windows-first, its interface shows its age, and i
 - Find duplicates by tags, audio fingerprint, or both.
 - Save tag presets and reusable actions for repeatable cleanup.
 
+### Audition tracks in place
+
+- Play the current selection or double-click a row; `Space` toggles playback and `Ctrl+←`/`Ctrl+→` skip.
+- A persistent player bar shows artwork, title, artist, elapsed time, and duration.
+- Seek, volume, mute, and repeat off/all/one; volume, mute, and repeat persist across launches.
+- The queue follows the visible filtered and sorted order, while next/previous stay stable during playback.
+- Playback is desktop-only. The CLI and MCP surfaces never control audio.
+
 ### Artwork and metadata
 
 - Embed, replace, extract, and remove cover art (front, back, artist, per-track).
@@ -102,6 +110,7 @@ The app is organized around four surfaces:
 | **Track table** | Dense virtualized multi-select table with sortable columns and inspector editing. |
 | **Inspector** | Full metadata for the current selection, including extended frames and artwork. |
 | **Action bar** | Batch operations, previews, undo, and quick search (`Ctrl+F`). |
+| **Player bar** | Artwork, transport, seek, volume, repeat, and queue position for the current track. |
 
 Design goals:
 
@@ -239,7 +248,10 @@ extended frame coverage. Unreadable files are reported, never silently rewritten
   "last_folder": "/home/me/Music",
   "theme": "dark",
   "always_preview": true,
-  "backup_before_write": true
+  "backup_before_write": true,
+  "playback_volume": 0.8,
+  "playback_muted": false,
+  "playback_repeat": "off"
 }
 ```
 
@@ -255,6 +267,9 @@ extended frame coverage. Unreadable files are reported, never silently rewritten
 | `theme` | `"dark"`, `"light"`, `"system"` | UI theme. |
 | `always_preview` | boolean | Show the diff dialog before every save. |
 | `backup_before_write` | boolean | Reserved; writes are already atomic and journaled. |
+| `playback_volume` | number | Player volume from `0.0` to `1.0`. |
+| `playback_muted` | boolean | Whether playback starts muted. |
+| `playback_repeat` | `"off"`, `"all"`, `"one"` | Repeat mode for the playback queue. |
 
 Writes currently use TagLib# defaults for format-specific options. The ID3 values are persisted so the
 format compatibility pass can change behavior without migrating settings.
@@ -287,9 +302,9 @@ The repository is split into small, testable projects:
 | Project | Responsibility |
 | --- | --- |
 | `Tagger.Domain` | Tracks, tag catalog, validation, filename patterns, search, journal records. No UI or I/O. |
-| `Tagger.Application` | Use cases and ports: library loading, previews, safe writes, rename/import, artwork, settings, undo, duplicates. |
-| `Tagger.Infrastructure` | TagLib# adapter with atomic temp-file writes, file scanner, JSON settings/journal, image inspection. |
-| `Tagger.Desktop` | Avalonia 12 MVVM UI, compiled bindings, modern dark/light design system. |
+| `Tagger.Application` | Use cases and ports: library loading, playback/queue, previews, safe writes, rename/import, artwork, settings, undo, duplicates. |
+| `Tagger.Infrastructure` | TagLib# adapter with atomic temp-file writes, LibVLCSharp playback adapter, file scanner, JSON settings/journal, image inspection. |
+| `Tagger.Desktop` | Avalonia 12 MVVM UI, compiled bindings, player bar, modern dark/light design system. |
 | `Tagger.Cli` | `list`, `read`, `write`, `from-filename`, `rename`, `mcp`. |
 | `Tagger.Mcp` | Stdio MCP server with scoped roots and preview-first tools. |
 
@@ -302,6 +317,9 @@ Core principles:
 - **Scoped automation.** MCP tools reject paths outside the `--allow` roots.
 - **Boring storage.** Settings and the journal are plain JSON; there is no database.
 - **Offline first.** The app is fully usable with networking disabled.
+- **Self-contained audio.** Windows and macOS use the official LibVLC NuGet packages; Linux ships a
+  pinned portable VLC runtime, so users never install VLC separately. See
+  [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
 ---
 
@@ -310,6 +328,7 @@ Core principles:
 - [x] **Foundations** — tag read/write, atomic writes, change journal, undo.
 - [x] **Desktop UI** — library browser, multi-select table, inspector, artwork, dark/light themes.
 - [x] **Batch workflows** — rename from tags, tags from filenames, duplicate finder.
+- [x] **Audio preview** — player bar, queue, seek, volume, mute, repeat, safe writes while playing.
 - [ ] **Text tools and presets** — case conversion, replace, numbering, reusable actions.
 - [ ] **Online metadata** — MusicBrainz, Discogs, AcoustID, reviewable autotag previews.
 - [x] **Agent surface** — MCP server, scoped roots, dry-run tooling, preview-first tools.
@@ -332,6 +351,10 @@ dotnet test Tagger.slnx
 
 # Desktop app
 dotnet run --project src/Tagger.Desktop
+
+# Linux audio runtime (once; requires Docker).
+# The generated directory is gitignored and copied next to the app.
+build/libvlc-linux/build.sh
 
 # CLI
 dotnet run --project src/Tagger.Cli -- list ~/Music

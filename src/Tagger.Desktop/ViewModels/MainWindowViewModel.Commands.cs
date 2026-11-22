@@ -114,6 +114,7 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        Player.RemoveFromQueue(_allTracks.Select(row => row.FilePath).ToList());
         _allTracks.Clear();
         VisibleTracks.Clear();
         VisibleTree.Clear();
@@ -193,11 +194,15 @@ public sealed partial class MainWindowViewModel
     [RelayCommand]
     private async Task UndoAsync()
     {
+        var continuation = Player.PrepareForMutation(
+            _allTracks.Select(row => row.FilePath).ToList());
+
         var result = await _undo.UndoLastAsync();
         StatusMessage = result.Message;
 
         if (!result.Success || result.Transaction is null)
         {
+            await ResumePlaybackAsync(continuation);
             return;
         }
 
@@ -214,6 +219,7 @@ public sealed partial class MainWindowViewModel
             .ToList();
 
         await ReloadPathsAsync(reload, remove);
+        await ResumePlaybackAsync(continuation);
     }
 
     [RelayCommand]
