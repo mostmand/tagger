@@ -1,0 +1,222 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version used in artifact names when building without a tag
+        required: true
+        default: 0.1.0-dev
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+
+jobs:
+  linux-x64:
+    name: Linux x64
+    # Ubuntu 22.04 is the oldest supported glibc baseline (2.35) and matches
+    # the portable libVLC runtime. Publishing here keeps the binary compatible
+    # with newer distributions.
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="${{ inputs.version }}"
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "Building version ${version}"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Cache portable libVLC runtime
+        id: vlc-cache
+        uses: actions/cache@v4
+        with:
+          path: src/Tagger.Desktop/libvlc/linux-x64
+          key: libvlc-linux-x64-${{ hashFiles('build/libvlc-linux/Dockerfile', 'build/libvlc-linux/collect.py', 'build/libvlc-linux/build.sh') }}
+
+      - name: Build portable libVLC runtime
+        if: steps.vlc-cache.outputs.cache-hit != 'true'
+        run: build/libvlc-linux/build.sh
+
+      - name: Verify libVLC runtime
+        run: test -f src/Tagger.Desktop/libvlc/linux-x64/lib/libvlc.so
+
+      - name: Publish desktop app
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          dotnet publish src/Tagger.Desktop/Tagger.Desktop.csproj \
+            --configuration Release \
+            --runtime linux-x64 \
+            --self-contained true \
+            --output publish/linux \
+            -p:Version="${VERSION}" \
+            -p:DebugType=none \
+            -p:DebugSymbols=false \
+            -p:PublishSingleFile=false
+
+      - name: Package portable archive
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          staging="tagger-${VERSION}-linux-x64"
+          mkdir -p "dist/${staging}"
+          cp -a publish/linux/. "dist/${staging}/"
+          cp LICENSE THIRD-PARTY-NOTICES.md THIRD_PARTY_NOTICES.md "dist/${staging}/"
+          tar --sort=name --owner=0 --group=0 --numeric-owner \
+            -C dist -czf "dist/${staging}.tar.gz" "${staging}"
+          ls -lh "dist/${staging}.tar.gz"
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: dist/tagger-*-linux-x64.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  windows-x64:
+    name: Windows x64
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="${{ inputs.version }}"
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "Building version ${version}"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Publish desktop app
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          dotnet publish src/Tagger.Desktop/Tagger.Desktop.csproj \
+            --configuration Release \
+            --runtime win-x64 \
+            --self-contained true \
+            --output publish/windows \
+            -p:Version="${VERSION}" \
+            -p:DebugType=none \
+            -p:DebugSymbols=false \
+            -p:PublishSingleFile=false
+
+      - name: Verify libVLC runtime
+        shell: pwsh
+        run: |
+          $libvlc = "publish/windows/libvlc/win-x64/libvlc.dll"
+          if (-not (Test-Path $libvlc)) {
+            throw "libvlc.dll was not found at $libvlc."
+          }
+
+      - name: Package portable archive
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $staging = "tagger-$env:VERSION-win-x64"
+          New-Item -ItemType Directory -Force -Path "dist/$staging" | Out-Null
+          Copy-Item -Path "publish/windows/*" -Destination "dist/$staging" -Recurse -Force
+          Copy-Item -Path LICENSE, THIRD-PARTY-NOTICES.md, THIRD_PARTY_NOTICES.md -Destination "dist/$staging" -Force
+
+          # The Windows NuGet package ships x86, x64, and arm64 runtimes.
+          # This build targets x64 only, so drop the dead weight.
+          foreach ($rid in @("win-x86", "win-arm64", "linux-x64")) {
+            $path = "dist/$staging/libvlc/$rid"
+            if (Test-Path $path) { Remove-Item -Recurse -Force $path }
+          }
+
+          Compress-Archive -Path "dist/$staging" -DestinationPath "dist/$staging.zip" -CompressionLevel Optimal
+          Get-Item "dist/$staging.zip" | Format-List Name, Length
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: dist/tagger-*-win-x64.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-release:
+    name: Publish GitHub release
+    needs: [linux-x64, windows-x64]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-x64"
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum *.tar.gz *.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Tagger ${{ github.ref_name }}
+          files: dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true

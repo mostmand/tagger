@@ -28,13 +28,13 @@
        produced by build/libvlc-linux/build.sh and copied next to the app. -->
   <Target Name="CopyLinuxVlcRuntime"
           AfterTargets="Build"
-          Condition="$([MSBuild]::IsOSPlatform('Linux')) And Exists('$(MSBuildProjectDirectory)/libvlc/linux-x64')">
+          Condition="$([MSBuild]::IsOSPlatform('Linux')) And ('$(RuntimeIdentifier)' == '' Or $(RuntimeIdentifier.StartsWith('linux'))) And Exists('$(MSBuildProjectDirectory)/libvlc/linux-x64')">
     <Exec Command="mkdir -p &quot;$(OutDir)libvlc/linux-x64&quot; &amp;&amp; cp -au &quot;$(MSBuildProjectDirectory)/libvlc/linux-x64/.&quot; &quot;$(OutDir)libvlc/linux-x64/&quot;" />
   </Target>
 
   <Target Name="PublishLinuxVlcRuntime"
           AfterTargets="Publish"
-          Condition="$([MSBuild]::IsOSPlatform('Linux')) And Exists('$(MSBuildProjectDirectory)/libvlc/linux-x64')">
+          Condition="$([MSBuild]::IsOSPlatform('Linux')) And ('$(RuntimeIdentifier)' == '' Or $(RuntimeIdentifier.StartsWith('linux'))) And Exists('$(MSBuildProjectDirectory)/libvlc/linux-x64')">
     <Exec Command="mkdir -p &quot;$(PublishDir)libvlc/linux-x64&quot; &amp;&amp; cp -au &quot;$(MSBuildProjectDirectory)/libvlc/linux-x64/.&quot; &quot;$(PublishDir)libvlc/linux-x64/&quot;" />
   </Target>
 </Project>

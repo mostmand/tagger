@@ -374,11 +374,16 @@ dotnet run --project src/Tagger.Mcp -- --allow ~/Music
   always `_sut` and tests use `Method_ShouldOutcome_WhenCondition` with explicit Arrange/Act/Assert comments.
 - UI and logic are decoupled: view models depend on application interfaces, never infrastructure.
 
-Packaging will follow once the format matrix and release signing are nailed down. Intended targets:
+Packaging is automated by `.github/workflows/release.yml`. Tagging `v<version>` builds
+self-contained portable archives for Windows and Linux and attaches them to a GitHub
+release. See [`docs/releasing.md`](docs/releasing.md) for the workflow, signing, and
+future installer/AppImage plans.
 
-- **Windows:** installer (`.exe`) and portable build
-- **macOS:** notarized `.dmg` for Apple silicon and Intel
-- **Linux:** AppImage, `.deb`, and Flatpak
+Current targets:
+
+- **Windows:** portable `.zip` now; signed installer later
+- **macOS:** notarized `.dmg` for Apple silicon and Intel (not built yet)
+- **Linux:** portable `.tar.gz` now; AppImage and `.deb` later
 
 ---
 
